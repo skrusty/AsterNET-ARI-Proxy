@@ -15,7 +15,7 @@ namespace AsterNET.ARI.Proxy.Providers.RabbitMQ
 			_options = options;
 		}
 
-		public IDialogue CreateDialogue()
+		public IDialogue CreateDialogue(string appName)
 		{
 			throw new NotImplementedException();
 		}

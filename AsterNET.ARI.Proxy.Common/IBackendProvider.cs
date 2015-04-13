@@ -5,6 +5,6 @@
 	/// </summary>
 	public interface IBackendProvider
 	{
-		IDialogue CreateDialogue();
+		IDialogue CreateDialogue(string appName);
 	}
 }
