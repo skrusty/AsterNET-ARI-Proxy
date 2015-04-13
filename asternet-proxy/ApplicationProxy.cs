@@ -7,15 +7,12 @@ using RestSharp;
 
 namespace AsterNET.ARI.Proxy
 {
-	public enum DialogueRefernceType { Channel, Bridge }
-
 	public class ApplicationProxy
 	{
 		private readonly IBackendProvider _provider;
 		private readonly StasisEndpoint _endpoint;
 		private readonly string _appName;
-		private readonly Dictionary<Guid, IDialogue> _dialogues;
-		private readonly Dictionary<Tuple<DialogueRefernceType, string>, Guid> _dialogueReferences;
+		private readonly Dictionary<string, IDialogue> _dialogues;
 		private readonly AriClient _client;
 		private RestClient _restClient;
 
@@ -26,8 +23,7 @@ namespace AsterNET.ARI.Proxy
 			_appName = appName;
 
 			// Init
-			_dialogues = new Dictionary<Guid, IDialogue>();
-			_dialogueReferences = new Dictionary<Tuple<DialogueRefernceType, string>, Guid>();
+			_dialogues = new Dictionary<string, IDialogue>();
 			_client = new AriClient(_endpoint, _appName);
 			_restClient = new RestClient(_endpoint.AriEndPoint)
 			{
@@ -40,7 +36,7 @@ namespace AsterNET.ARI.Proxy
 
 		private void _client_OnUnhandledEvent(IAriClient sender, Event eventMessage)
 		{
-			var dialogueId = Guid.Empty;
+			IDialogue dialogue = null;
 
 			// Catch all events and handle as required
 			switch (eventMessage.Type.ToLower())
@@ -48,8 +44,8 @@ namespace AsterNET.ARI.Proxy
 				case "statisstart":
 					// Check for an existing dialogue setup for this, if none found, create a new one
 					var startArgs = (StasisStartEvent)eventMessage;
-					dialogueId = _dialogueReferences.ContainsKey(new Tuple<DialogueRefernceType, string>(DialogueRefernceType.Channel, startArgs.Channel.Id))
-						? _dialogueReferences[new Tuple<DialogueRefernceType, string>(DialogueRefernceType.Channel, startArgs.Channel.Id)]
+					dialogue = _dialogues.ContainsKey(startArgs.Channel.Id)
+						? _dialogues[startArgs.Channel.Id]
 						: CreateNewDialogue(startArgs.Channel.Id);
 					break;
 				case "statisend":
@@ -60,16 +56,16 @@ namespace AsterNET.ARI.Proxy
 					if (eventMessage.Type.ToLower().StartsWith("bridge"))
 					{
 						// Bridge related event
-						var channel = (Bridge)eventMessage.GetType().GetProperty("Bridge").GetValue(eventMessage);
-						if (channel != null)
-							dialogueId = GetDialogue(DialogueRefernceType.Bridge, channel.Id);
+						var bridge = (Bridge)eventMessage.GetType().GetProperty("Bridge").GetValue(eventMessage);
+						if (bridge != null)
+							dialogue = GetDialogue(bridge.Id);
 					}
 					else if (eventMessage.Type.ToLower().StartsWith("channel"))
 					{
 						// Channel related event
 						var channel = (Channel) eventMessage.GetType().GetProperty("Channel").GetValue(eventMessage);
 						if (channel != null)
-							dialogueId = GetDialogue(DialogueRefernceType.Channel, channel.Id);
+							dialogue = GetDialogue(channel.Id);
 					}
 					else
 					{
@@ -77,10 +73,10 @@ namespace AsterNET.ARI.Proxy
 					}
 					break;
 			}
-			if (dialogueId != Guid.Empty)
+			if (dialogue != null)
 			{
 				// Get the dialogue channel to send this event out one
-				_dialogues[dialogueId].PushMessage(DialogueEventMessage.Create(eventMessage));
+				dialogue.PushMessage(DialogueEventMessage.Create(eventMessage));
 			}
 			else
 			{
@@ -88,27 +84,23 @@ namespace AsterNET.ARI.Proxy
 			}
 		}
 
-		private Guid GetDialogue(DialogueRefernceType type, string id)
+		private IDialogue GetDialogue(string id)
 		{
-			Guid dialogueId;
-			if (_dialogueReferences.ContainsKey(new Tuple<DialogueRefernceType, string>(type, id)))
-				dialogueId = _dialogueReferences[new Tuple<DialogueRefernceType, string>(type, id)];
-			else
-				throw new MissingDialogueException();
-			return dialogueId;
+			if (_dialogues.ContainsKey(id))
+				return _dialogues[id];
+			throw new MissingDialogueException();
 		}
 
-		private Guid CreateNewDialogue(string id)
+		private IDialogue CreateNewDialogue(string id)
 		{
 			var newDialogue = _provider.CreateDialogue();
-			_dialogues[newDialogue.DialogueId] = newDialogue;	// Add to dialogues
-			_dialogueReferences[new Tuple<DialogueRefernceType, string>(DialogueRefernceType.Channel, id)] = newDialogue.DialogueId;	// Create channel reference
+			_dialogues[id] = newDialogue;	// Add to dialogues
 
 			// Hook dialogue events
 			newDialogue.OnNewCommandRequest += Dialogue_OnNewCommandRequest;
 			newDialogue.OnDialogueDestroyed += Dialogue_OnDialogueDestroyed;
 
-			return newDialogue.DialogueId;
+			return newDialogue;
 		}
 
 		private void Dialogue_OnDialogueDestroyed(object sender, EventArgs e)
