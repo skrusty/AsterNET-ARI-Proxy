@@ -93,7 +93,7 @@ namespace AsterNET.ARI.Proxy
 
 		private IDialogue CreateNewDialogue(string id)
 		{
-			var newDialogue = _provider.CreateDialogue();
+			var newDialogue = _provider.CreateDialogue(_appName);
 			_dialogues[id] = newDialogue;	// Add to dialogues
 
 			// Hook dialogue events
@@ -110,6 +110,7 @@ namespace AsterNET.ARI.Proxy
 
 		private void Dialogue_OnNewCommandRequest(object sender, Command e)
 		{
+			
 			// Send command to ARI and wait for response
 			var request = new RestRequest(e.Url, (Method) Enum.Parse(typeof (Method), e.Method));
 			request.AddBody(e.Body);
