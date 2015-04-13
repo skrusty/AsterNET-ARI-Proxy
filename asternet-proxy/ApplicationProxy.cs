@@ -110,7 +110,14 @@ namespace AsterNET.ARI.Proxy
 
 		private void Dialogue_OnNewCommandRequest(object sender, Command e)
 		{
-			
+			// Look for in-dialogue addition from OriginateWithId
+			if (e.Method == "POST" && e.Url.StartsWith("/channel/"))
+			{
+				var newChanId = e.Url.Replace("/channel/", "");
+				if (!string.IsNullOrEmpty(newChanId))
+					_dialogues.Add(newChanId, (IDialogue)sender);
+			}
+
 			// Send command to ARI and wait for response
 			var request = new RestRequest(e.Url, (Method) Enum.Parse(typeof (Method), e.Method));
 			request.AddBody(e.Body);
