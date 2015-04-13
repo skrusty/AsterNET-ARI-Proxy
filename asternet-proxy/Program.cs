@@ -41,7 +41,7 @@ namespace AsterNET.ARI.Proxy
 		/// Creates a new diaglogue and pushes a new dialogue event to the control channel
 		/// </summary>
 		/// <returns></returns>
-		public IDialogue CreateDialogue()
+		public IDialogue CreateDialogue(string appName)
 		{
 			// Create the new dialogue queues
 
