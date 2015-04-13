@@ -1,0 +1,34 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 14
+VisualStudioVersion = 14.0.22609.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AsterNET.ARI.Proxy", "asternet-proxy\AsterNET.ARI.Proxy.csproj", "{A986E517-B059-43E8-9FEF-25ADD138B06F}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AsterNET.ARI.Proxy.Common", "AsterNET.ARI.Proxy.Common\AsterNET.ARI.Proxy.Common.csproj", "{7E97AF39-24CD-46C2-9864-495C4A5CBC8E}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AsterNET.ARI.Proxy.Providers.RabbitMQ", "AsterNET.ARI.Proxy.Providers.RabbitMQ\AsterNET.ARI.Proxy.Providers.RabbitMQ.csproj", "{A11C568D-9D03-4D0A-9260-2994CC0042D9}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{A986E517-B059-43E8-9FEF-25ADD138B06F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A986E517-B059-43E8-9FEF-25ADD138B06F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A986E517-B059-43E8-9FEF-25ADD138B06F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A986E517-B059-43E8-9FEF-25ADD138B06F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7E97AF39-24CD-46C2-9864-495C4A5CBC8E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7E97AF39-24CD-46C2-9864-495C4A5CBC8E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7E97AF39-24CD-46C2-9864-495C4A5CBC8E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7E97AF39-24CD-46C2-9864-495C4A5CBC8E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A11C568D-9D03-4D0A-9260-2994CC0042D9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A11C568D-9D03-4D0A-9260-2994CC0042D9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A11C568D-9D03-4D0A-9260-2994CC0042D9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A11C568D-9D03-4D0A-9260-2994CC0042D9}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
