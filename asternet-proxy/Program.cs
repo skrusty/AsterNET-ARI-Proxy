@@ -20,8 +20,7 @@ namespace AsterNET.ARI.Proxy
 			_proxies = new List<ApplicationProxy>();
 
 			// Load Applicaton Proxies
-			var apps = ProxyConfig.Current.Applications.Split(',');
-			foreach (var app in apps)
+			foreach (var app in ProxyConfig.Current.Applications)
 			{
 				var appProxy = new ApplicationProxy(provider,
 					new StasisEndpoint(ProxyConfig.Current.AriHostname, ProxyConfig.Current.AriPort, ProxyConfig.Current.AriUsername,
