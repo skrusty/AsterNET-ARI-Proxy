@@ -47,6 +47,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="DialogueEventMessage.cs" />
+    <Compile Include="DialogueRequestMessage.cs" />
     <Compile Include="DialogueResponseMessage.cs" />
     <Compile Include="IBackendProvider.cs" />
     <Compile Include="IDialogue.cs" />

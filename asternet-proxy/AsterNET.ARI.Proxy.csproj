@@ -68,6 +68,10 @@
       <Project>{7e97af39-24cd-46c2-9864-495c4a5cbc8e}</Project>
       <Name>AsterNET.ARI.Proxy.Common</Name>
     </ProjectReference>
+    <ProjectReference Include="..\AsterNET.ARI.Proxy.Providers.RabbitMQ\AsterNET.ARI.Proxy.Providers.RabbitMQ.csproj">
+      <Project>{a11c568d-9d03-4d0a-9260-2994cc0042d9}</Project>
+      <Name>AsterNET.ARI.Proxy.Providers.RabbitMQ</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

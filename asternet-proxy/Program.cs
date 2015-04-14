@@ -1,6 +1,7 @@
 ﻿using System;
 using AsterNET.ARI.Proxy.Common;
 using AsterNET.ARI.Proxy.Common.Messages;
+using AsterNET.ARI.Proxy.Providers.RabbitMQ;
 
 
 namespace AsterNET.ARI.Proxy
@@ -11,9 +12,14 @@ namespace AsterNET.ARI.Proxy
 		static void Main(string[] args)
 		{
 			// Init
-			var dummyProvider = new DummyProvider();
+			var provider = new RabbitMqProvider("amqp://", new RabbitMqOptions()
+			{
+				AutoDelete = false,
+				Durable = true,
+				Exclusive = false
+			});
 
-			var appProxy = new ApplicationProxy(dummyProvider, new StasisEndpoint("", 0, "", ""), "testapp");
+			var appProxy = new ApplicationProxy(provider, new StasisEndpoint("", 0, "", ""), "testapp");
 			appProxy.Start();
 
 			Console.CancelKeyPress += Console_CancelKeyPress;
@@ -25,56 +31,6 @@ namespace AsterNET.ARI.Proxy
 		{
 			// Terminate Proxy		
 				
-		}
-	}
-
-	
-	public class DummyProvider : IBackendProvider
-	{
-
-		public DummyProvider()
-		{
-			
-		}
-
-		/// <summary>
-		/// Creates a new diaglogue and pushes a new dialogue event to the control channel
-		/// </summary>
-		/// <returns></returns>
-		public IDialogue CreateDialogue(string appName)
-		{
-			// Create the new dialogue queues
-
-			// return the new dialogue object
-			return new DummyDialogue()
-			{
-				DialogueId = Guid.NewGuid()
-			};
-		}
-	}
-
-	public class DummyDialogue : IDialogue
-	{
-		public event EventHandler<Command> OnNewCommandRequest;
-		public event EventHandler OnDialogueDestroyed;
-
-		public Guid DialogueId { get; set; }
-
-		public void PushMessage(IDialogueMessage message)
-		{
-			switch (message.Type)
-			{
-				case MessageType.Event:
-					
-					break;
-				case MessageType.Request:
-					break;
-				case MessageType.Response:
-					break;
-				default:
-					throw new ArgumentOutOfRangeException();
-			}
-			
 		}
 	}
 }

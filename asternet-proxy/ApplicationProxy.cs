@@ -14,7 +14,7 @@ namespace AsterNET.ARI.Proxy
 		private readonly string _appName;
 		private readonly Dictionary<string, IDialogue> _dialogues;
 		private readonly AriClient _client;
-		private RestClient _restClient;
+		private readonly RestClient _restClient;
 
 		public ApplicationProxy(IBackendProvider provider, StasisEndpoint endpoint, string appName)
 		{
@@ -29,6 +29,9 @@ namespace AsterNET.ARI.Proxy
 			{
 				Authenticator = new HttpBasicAuthenticator(_endpoint.Username, _endpoint.Password)
 			};
+
+			// Register this app name with the backend provider
+			_provider.RegisterApplication(_appName);
 
 			// Init event handler
 			_client.OnUnhandledEvent += _client_OnUnhandledEvent;
@@ -105,7 +108,8 @@ namespace AsterNET.ARI.Proxy
 
 		private void Dialogue_OnDialogueDestroyed(object sender, EventArgs e)
 		{
-			
+			// A dialogue's channels have been destroyed in the backend provider
+			// We should deregister the dialogue in the application proxy
 		}
 
 		private void Dialogue_OnNewCommandRequest(object sender, Command e)

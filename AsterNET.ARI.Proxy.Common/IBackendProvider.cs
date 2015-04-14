@@ -6,5 +6,6 @@
 	public interface IBackendProvider
 	{
 		IDialogue CreateDialogue(string appName);
+		void RegisterApplication(string appName);
 	}
 }
