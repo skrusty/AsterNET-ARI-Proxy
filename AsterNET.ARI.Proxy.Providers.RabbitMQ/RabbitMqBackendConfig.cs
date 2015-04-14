@@ -15,11 +15,13 @@ namespace AsterNET.ARI.Proxy.Providers.RabbitMQ
 
 		public static RabbitMqBackendConfig Create(dynamic config)
 		{
-			var rtn = config as RabbitMqBackendConfig;
-			if (rtn == null)
-				throw new Exception("Unable to parse RabbitMq Backedn Provider Configuration");
-
-			return rtn;
+			return new RabbitMqBackendConfig()
+			{
+				AmqpUri = config.AmqpUri,
+				AutoDelete = config.AutoDelete,
+				Durable = config.Durable,
+				Exclusive = config.Exclusive
+			};
 		}
     }
 }
