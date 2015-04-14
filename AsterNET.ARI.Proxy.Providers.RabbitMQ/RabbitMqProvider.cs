@@ -17,10 +17,15 @@ namespace AsterNET.ARI.Proxy.Providers.RabbitMQ
 		private readonly ConnectionFactory _rmqConnection;
 		private readonly Dictionary<string, RabbitMqProducer> _controlChannels;
 
-		public RabbitMqProvider(string amqpUri, RabbitMqOptions options)
+		public RabbitMqProvider(RabbitMqBackendConfig config)
 		{
-			_amqpUri = amqpUri;
-			_options = options;
+			_amqpUri = config.AmqpUri;
+			_options = new RabbitMqOptions()
+			{
+				AutoDelete = config.AutoDelete,
+				Durable = config.Durable,
+				Exclusive = config.Exclusive
+			};
 
 			_rmqConnection = new ConnectionFactory {uri = new Uri(_amqpUri)};
 			_controlChannels = new Dictionary<string, RabbitMqProducer>();
