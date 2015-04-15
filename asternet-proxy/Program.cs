@@ -4,17 +4,20 @@ using AsterNET.ARI.Proxy.Common;
 using AsterNET.ARI.Proxy.Config;
 using AsterNET.ARI.Proxy.Config.ConfigurationProviders;
 using AsterNET.ARI.Proxy.Providers.RabbitMQ;
+using NLog;
 
 namespace AsterNET.ARI.Proxy
 {
 	class Program
 	{
+		private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
 		private static List<ApplicationProxy> _proxies;
 		static void Main(string[] args)
 		{
+			Logger.Info("Starting Ari Proxy");
 			// Load config
 			ProxyConfig.Current = new JsonConfigurationProvider().LoadConfiguration<ProxyConfig>("config");
-
+			
 			// Init
 			IBackendProvider provider = CreateProvider(ProxyConfig.Current.BackendProvider, ProxyConfig.Current.BackendConfig);
 			_proxies = new List<ApplicationProxy>();
@@ -22,6 +25,7 @@ namespace AsterNET.ARI.Proxy
 			// Load Applicaton Proxies
 			foreach (var app in ProxyConfig.Current.Applications)
 			{
+				Logger.Info("Starting Application Proxy for {0}", app);
 				var appProxy = new ApplicationProxy(provider,
 					new StasisEndpoint(ProxyConfig.Current.AriHostname, ProxyConfig.Current.AriPort, ProxyConfig.Current.AriUsername,
 						ProxyConfig.Current.AriPassword), app);
@@ -31,6 +35,8 @@ namespace AsterNET.ARI.Proxy
 				appProxy.Start();
 			}
 
+
+			Logger.Info("Load complete");
 			// Wait for exit
 			Console.CancelKeyPress += Console_CancelKeyPress;
 			while (true)
