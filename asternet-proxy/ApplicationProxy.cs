@@ -3,12 +3,14 @@ using System.Collections.Generic;
 using AsterNET.ARI.Models;
 using AsterNET.ARI.Proxy.Common;
 using AsterNET.ARI.Proxy.Common.Messages;
+using NLog;
 using RestSharp;
 
 namespace AsterNET.ARI.Proxy
 {
 	public class ApplicationProxy
 	{
+		private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
 		private readonly IBackendProvider _provider;
 		private readonly StasisEndpoint _endpoint;
 		private readonly string _appName;
@@ -39,21 +41,25 @@ namespace AsterNET.ARI.Proxy
 
 		private void _client_OnUnhandledEvent(IAriClient sender, Event eventMessage)
 		{
+			Logger.Trace("New Event: {0}", eventMessage.Type);
 			IDialogue dialogue = null;
 
 			// Catch all events and handle as required
 			switch (eventMessage.Type.ToLower())
 			{
-				case "statisstart":
+				case "stasisstart":
 					// Check for an existing dialogue setup for this, if none found, create a new one
 					var startArgs = (StasisStartEvent)eventMessage;
 					dialogue = _dialogues.ContainsKey(startArgs.Channel.Id)
 						? _dialogues[startArgs.Channel.Id]
 						: CreateNewDialogue(startArgs.Channel.Id);
 					break;
-				case "statisend":
+				case "stasisend":
 					// Application ended
-					
+					var endArgs = (StasisEndEvent)eventMessage;
+					if (_dialogues.ContainsKey(endArgs.Channel.Id))
+						dialogue = _dialogues[endArgs.Channel.Id];
+					// Should we unregister this channel from the dialogue at this point?
 					break;
 				default:
 					if (eventMessage.Type.ToLower().StartsWith("bridge"))
@@ -69,21 +75,42 @@ namespace AsterNET.ARI.Proxy
 						var channel = (Channel) eventMessage.GetType().GetProperty("Channel").GetValue(eventMessage);
 						if (channel != null)
 							dialogue = GetDialogue(channel.Id);
+					}else if (eventMessage.Type.ToLower().StartsWith("recording"))
+					{
+						// Handle recordings
+						var target = ((LiveRecording)eventMessage.GetType().GetProperty("Recording").GetValue(eventMessage)).Target_uri;
+						if (target != null)
+							dialogue = GetDialogue(target);
+					}
+					else if (eventMessage.Type.ToLower().StartsWith("playback"))
+					{
+						// Handle playbacks
+						var target = ((Playback)eventMessage.GetType().GetProperty("Playback").GetValue(eventMessage)).Target_uri;
+						if (target != null)
+							dialogue = GetDialogue(target);
+					}
+					else if (eventMessage.Type.ToLower().StartsWith("dial"))
+					{
+						// Handle dial events
+						// Not 100% sure how this should be done as yet
 					}
 					else
 					{
 						// Something else...
+						Logger.Warn("Unknown event type {0}", eventMessage.Type);
 					}
 					break;
 			}
 			if (dialogue != null)
 			{
+				Logger.Trace("Pushing message {0} to dialogue {1}", eventMessage.Type, dialogue.DialogueId);
 				// Get the dialogue channel to send this event out one
 				dialogue.PushMessage(DialogueEventMessage.Create(eventMessage));
 			}
 			else
 			{
 				// unmatched dialogue
+				Logger.Warn("Unmatched dialogue for event {0}", eventMessage.Type);
 			}
 		}
 
@@ -102,6 +129,9 @@ namespace AsterNET.ARI.Proxy
 			// Hook dialogue events
 			newDialogue.OnNewCommandRequest += Dialogue_OnNewCommandRequest;
 			newDialogue.OnDialogueDestroyed += Dialogue_OnDialogueDestroyed;
+
+			Logger.Debug("Created new Dialogue {0}", newDialogue.DialogueId);
+			Logger.Debug("Attached {0} to Dialogue {1}", id, newDialogue.DialogueId);
 
 			return newDialogue;
 		}
