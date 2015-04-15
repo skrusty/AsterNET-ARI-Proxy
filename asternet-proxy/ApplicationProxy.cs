@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using AsterNET.ARI.Models;
 using AsterNET.ARI.Proxy.Common;
 using AsterNET.ARI.Proxy.Common.Messages;
+using Newtonsoft.Json;
 using NLog;
 using RestSharp;
 
@@ -149,12 +150,21 @@ namespace AsterNET.ARI.Proxy
 			// Look for in-dialogue addition from OriginateWithId
 			if (e.Method == "POST" && e.Url.StartsWith("/channel/"))
 			{
-				
 				var newChanId = e.Url.Replace("/channel/", "");
 				if (!string.IsNullOrEmpty(newChanId))
 				{
-					Logger.Info("Attching {0} to Dialogue {1}", newChanId, ((IDialogue) sender).DialogueId);
+					Logger.Info("Attching Channel {0} to Dialogue {1}", newChanId, ((IDialogue) sender).DialogueId);
                     _dialogues.Add(newChanId, (IDialogue)sender);
+				}
+			}
+			if (e.Method == "POST" && e.Url.ToLower() == "/bridges")
+			{
+				dynamic bridgeBody = JsonConvert.DeserializeObject<dynamic>(e.Body);
+				var newBridgeId = bridgeBody.bridgeId;
+				if (newBridgeId != null)
+				{
+					Logger.Info("Attching Bridge {0} to Dialogue {1}", newBridgeId, ((IDialogue)sender).DialogueId);
+					_dialogues.Add(newBridgeId, (IDialogue)sender);
 				}
 			}
 
