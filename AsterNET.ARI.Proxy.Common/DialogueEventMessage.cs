@@ -1,6 +1,7 @@
 ﻿using System;
 using AsterNET.ARI.Models;
 using AsterNET.ARI.Proxy.Common.Messages;
+using Newtonsoft.Json;
 
 namespace AsterNET.ARI.Proxy.Common
 {
@@ -19,7 +20,7 @@ namespace AsterNET.ARI.Proxy.Common
 					Type = newEvent.Type,
 					Timestamp = DateTime.UtcNow,
 					ServerId = "", //TODO
-					AriBody = newEvent
+					AriBody = JsonConvert.SerializeObject(newEvent)
 				}
 			};
 		}
