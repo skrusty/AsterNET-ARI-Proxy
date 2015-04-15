@@ -150,6 +150,7 @@ namespace AsterNET.ARI.Proxy.Providers.RabbitMQ
 			QueueName = queueName;
 
 			CreateModel();
+			Model.QueueDeclare(QueueName, options.Durable, options.Exclusive, options.AutoDelete, null);
 		}
 
 		/// <summary>
