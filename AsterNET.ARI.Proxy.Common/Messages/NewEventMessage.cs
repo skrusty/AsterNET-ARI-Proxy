@@ -12,6 +12,6 @@ namespace AsterNET.ARI.Proxy.Common.Messages
 		[JsonProperty("type")]
 		public string Type { get; set; }
 		[JsonProperty("ari_body")]
-		public object AriBody { get; set; }
+		public string AriBody { get; set; }
 	}
 }
