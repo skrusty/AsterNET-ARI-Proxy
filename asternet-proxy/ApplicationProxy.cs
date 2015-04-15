@@ -78,14 +78,14 @@ namespace AsterNET.ARI.Proxy
 					}else if (eventMessage.Type.ToLower().StartsWith("recording"))
 					{
 						// Handle recordings
-						var target = ((LiveRecording)eventMessage.GetType().GetProperty("Recording").GetValue(eventMessage)).Target_uri;
+						var target = ((LiveRecording)eventMessage.GetType().GetProperty("Recording").GetValue(eventMessage)).Target_uri.Replace("channel:", "");
 						if (target != null)
 							dialogue = GetDialogue(target);
 					}
 					else if (eventMessage.Type.ToLower().StartsWith("playback"))
 					{
 						// Handle playbacks
-						var target = ((Playback)eventMessage.GetType().GetProperty("Playback").GetValue(eventMessage)).Target_uri;
+						var target = ((Playback)eventMessage.GetType().GetProperty("Playback").GetValue(eventMessage)).Target_uri.Replace("channel:", "");
 						if (target != null)
 							dialogue = GetDialogue(target);
 					}
@@ -144,17 +144,23 @@ namespace AsterNET.ARI.Proxy
 
 		private void Dialogue_OnNewCommandRequest(object sender, Command e)
 		{
+			Logger.Debug("New Command on Dialogue {0}: Uri: {1}, Method: {2}, Body: {3}", ((IDialogue) sender).DialogueId, e.Url,
+				e.Method, e.Body);
 			// Look for in-dialogue addition from OriginateWithId
 			if (e.Method == "POST" && e.Url.StartsWith("/channel/"))
 			{
+				
 				var newChanId = e.Url.Replace("/channel/", "");
 				if (!string.IsNullOrEmpty(newChanId))
-					_dialogues.Add(newChanId, (IDialogue)sender);
+				{
+					Logger.Info("Attching {0} to Dialogue {1}", newChanId, ((IDialogue) sender).DialogueId);
+                    _dialogues.Add(newChanId, (IDialogue)sender);
+				}
 			}
 
 			// Send command to ARI and wait for response
 			var request = new RestRequest(e.Url, (Method) Enum.Parse(typeof (Method), e.Method));
-			request.AddBody(e.Body);
+			request.AddParameter("application/json", e.Body, ParameterType.RequestBody);
 
 			var result = _restClient.Execute(request);
 			var rtn = new CommandResult()
