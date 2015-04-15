@@ -5,6 +5,7 @@ using System.Text;
 using AsterNET.ARI.Proxy.Common;
 using AsterNET.ARI.Proxy.Common.Messages;
 using Newtonsoft.Json;
+using NLog;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 
@@ -79,6 +80,7 @@ namespace AsterNET.ARI.Proxy.Providers.RabbitMQ
 
 	public class RabbitMqDialogue : IDialogue
 	{
+		private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
 		private readonly RabbitMqProducer _eventChannel;
 		private readonly RabbitMqProducer _responseChannel;
 		private readonly RabbitMqConsumer _requestChannel;
@@ -107,7 +109,9 @@ namespace AsterNET.ARI.Proxy.Providers.RabbitMQ
 				var request = message as DialogueResponseMessage;
 				if (request == null) return;
 
-				_responseChannel.PushToQueue(JsonConvert.SerializeObject(request.Body));
+				var reqJson = JsonConvert.SerializeObject(request.Body);
+                Logger.Trace("Pusing response to dialogue {0}: {1}", DialogueId, reqJson);
+                _responseChannel.PushToQueue(reqJson);
 			}
 			else if (message.Type == MessageType.Event)
 			{
@@ -115,12 +119,15 @@ namespace AsterNET.ARI.Proxy.Providers.RabbitMQ
 				var evt = message as DialogueEventMessage;
 				if (evt == null) return;
 
-				_eventChannel.PushToQueue(JsonConvert.SerializeObject(evt.Body));
+				var evtJson = JsonConvert.SerializeObject(evt.Body);
+                Logger.Trace("Pusing event to dialogue {0}: {1}", DialogueId, evtJson);
+				_eventChannel.PushToQueue(evtJson);
 			}
 		}
 
 		protected void OnDequeue(string message, RabbitMqConsumer sender, ulong deliveryTag)
 		{
+			Logger.Trace("Receiving request from dialogue {0}: {1}", DialogueId, message);
 			if (OnNewCommandRequest == null) return;
 			try
 			{
@@ -128,18 +135,19 @@ namespace AsterNET.ARI.Proxy.Providers.RabbitMQ
 			}
 			catch (Exception ex)
 			{
-				Trace.TraceError("Error processing OnNewCommandRequest: {0}", ex.Message);
+				Logger.Error("Error processing OnNewCommandRequest", ex);
 			}
 		}
 
 		protected void OnError(Exception ex, RabbitMqConsumer sender, ulong deliveryTag)
 		{
-			Trace.TraceError("RabbitMq Consumer Error: {0}", ex.Message);
+			Logger.Error("RabbitMq Consumer Error", ex);
 		}
 	}
 
 	public class RabbitMqConsumer : IDisposable
 	{
+		private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
 		private readonly RabbitMqOptions _options;
 		private EventingBasicConsumer _consumer;
 
@@ -199,9 +207,7 @@ namespace AsterNET.ARI.Proxy.Providers.RabbitMQ
 				}
 				catch (Exception ex)
 				{
-#if DEBUG
-					Debug.WriteLine(ex.Message);
-#endif
+					Logger.Error("Error reding from queue", ex);
 				}
 			};
 
