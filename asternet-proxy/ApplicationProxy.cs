@@ -209,11 +209,11 @@ namespace AsterNET.ARI.Proxy
 			// Check result for new Id
 			if (rtn.ResponseBody.Length > 0)
 			{
-				var responseObj = JsonConvert.DeserializeObject<dynamic>(rtn.ResponseBody);
-				if (DynamicHelper.Exist(responseObj, "Id"))
-					AddToDialogue(DynamicHelper.GetProperty(responseObj, "id"), (IDialogue)sender);
-				if (DynamicHelper.Exist(responseObj, "Name"))
-					AddToDialogue(DynamicHelper.GetProperty(responseObj, "name"), (IDialogue)sender);
+				var responseObj = JsonConvert.DeserializeObject<JObject>(rtn.ResponseBody);
+				if (responseObj["id"]!=null)
+					AddToDialogue((string)responseObj["id"], (IDialogue)sender);
+				//if (responseObj["name"] != null)
+				//	AddToDialogue((string)responseObj["name"], (IDialogue)sender);
 			}
 
 			// Send back a new response message

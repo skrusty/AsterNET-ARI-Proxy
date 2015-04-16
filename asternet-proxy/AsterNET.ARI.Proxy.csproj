@@ -59,7 +59,6 @@
     <Compile Include="Config\ConfigurationProviders\JsonConfigurationProvider.cs" />
     <Compile Include="Config\IConfigurationProvider.cs" />
     <Compile Include="Config\ProxyConfig.cs" />
-    <Compile Include="Helpers\DynamicHelper.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
