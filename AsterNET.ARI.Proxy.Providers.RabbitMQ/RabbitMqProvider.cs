@@ -110,7 +110,7 @@ namespace AsterNET.ARI.Proxy.Providers.RabbitMQ
 				if (request == null) return;
 
 				var reqJson = JsonConvert.SerializeObject(request.Body);
-                Logger.Trace("Pusing response to dialogue {0}: {1}", DialogueId, reqJson);
+                Logger.Trace("Pushing response to dialogue {0}: {1}", DialogueId, reqJson);
                 _responseChannel.PushToQueue(reqJson);
 			}
 			else if (message.Type == MessageType.Event)

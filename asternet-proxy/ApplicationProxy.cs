@@ -160,7 +160,7 @@ namespace AsterNET.ARI.Proxy
 			}
 			catch (Exception ex)
 			{
-				Logger.Error("An error occured while mathcing the event to a dialogue", ex);
+				Logger.Error("An error occurred while matching the event to a dialogue", ex);
 			}
 		}
 		private void Dialogue_OnDialogueDestroyed(object sender, EventArgs e)
