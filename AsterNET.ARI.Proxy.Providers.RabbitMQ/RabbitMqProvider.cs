@@ -120,7 +120,7 @@ namespace AsterNET.ARI.Proxy.Providers.RabbitMQ
 				if (evt == null) return;
 
 				var evtJson = JsonConvert.SerializeObject(evt.Body);
-                Logger.Trace("Pusing event to dialogue {0}: {1}", DialogueId, evtJson);
+                Logger.Trace("Pushing event to dialogue {0}: {1}", DialogueId, evtJson);
 				_eventChannel.PushToQueue(evtJson);
 			}
 		}
