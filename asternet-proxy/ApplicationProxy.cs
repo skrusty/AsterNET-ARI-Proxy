@@ -1,9 +1,12 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using AsterNET.ARI.Models;
 using AsterNET.ARI.Proxy.Common;
 using AsterNET.ARI.Proxy.Common.Messages;
+using AsterNET.ARI.Proxy.Helpers;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using NLog;
 using RestSharp;
 
@@ -12,11 +15,11 @@ namespace AsterNET.ARI.Proxy
 	public class ApplicationProxy
 	{
 		private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
-		private readonly IBackendProvider _provider;
-		private readonly StasisEndpoint _endpoint;
 		private readonly string _appName;
-		private readonly Dictionary<string, IDialogue> _dialogues;
 		private readonly AriClient _client;
+		private readonly Dictionary<string, IDialogue> _dialogues;
+		private readonly StasisEndpoint _endpoint;
+		private readonly IBackendProvider _provider;
 		private readonly RestClient _restClient;
 
 		public ApplicationProxy(IBackendProvider provider, StasisEndpoint endpoint, string appName)
@@ -40,81 +43,7 @@ namespace AsterNET.ARI.Proxy
 			_client.OnUnhandledEvent += _client_OnUnhandledEvent;
 		}
 
-		private void _client_OnUnhandledEvent(IAriClient sender, Event eventMessage)
-		{
-			Logger.Trace("New Event: {0}", eventMessage.Type);
-			IDialogue dialogue = null;
-
-			// Catch all events and handle as required
-			switch (eventMessage.Type.ToLower())
-			{
-				case "stasisstart":
-					// Check for an existing dialogue setup for this, if none found, create a new one
-					var startArgs = (StasisStartEvent)eventMessage;
-					dialogue = _dialogues.ContainsKey(startArgs.Channel.Id)
-						? _dialogues[startArgs.Channel.Id]
-						: CreateNewDialogue(startArgs.Channel.Id);
-					break;
-				case "stasisend":
-					// Application ended
-					var endArgs = (StasisEndEvent)eventMessage;
-					if (_dialogues.ContainsKey(endArgs.Channel.Id))
-						dialogue = _dialogues[endArgs.Channel.Id];
-					// Should we unregister this channel from the dialogue at this point?
-					break;
-				default:
-					if (eventMessage.Type.ToLower().StartsWith("bridge"))
-					{
-						// Bridge related event
-						var bridge = (Bridge)eventMessage.GetType().GetProperty("Bridge").GetValue(eventMessage);
-						if (bridge != null)
-							dialogue = GetDialogue(bridge.Id);
-					}
-					else if (eventMessage.Type.ToLower().StartsWith("channel"))
-					{
-						// Channel related event
-						var channel = (Channel) eventMessage.GetType().GetProperty("Channel").GetValue(eventMessage);
-						if (channel != null)
-							dialogue = GetDialogue(channel.Id);
-					}else if (eventMessage.Type.ToLower().StartsWith("recording"))
-					{
-						// Handle recordings
-						var target = ((LiveRecording)eventMessage.GetType().GetProperty("Recording").GetValue(eventMessage)).Target_uri.Replace("channel:", "");
-						if (target != null)
-							dialogue = GetDialogue(target);
-					}
-					else if (eventMessage.Type.ToLower().StartsWith("playback"))
-					{
-						// Handle playbacks
-						var target = ((Playback)eventMessage.GetType().GetProperty("Playback").GetValue(eventMessage)).Target_uri.Replace("channel:", "");
-						if (target != null)
-							dialogue = GetDialogue(target);
-					}
-					else if (eventMessage.Type.ToLower().StartsWith("dial"))
-					{
-						// Handle dial events
-						// Not 100% sure how this should be done as yet
-					}
-					else
-					{
-						// Something else...
-						Logger.Warn("Unknown event type {0}", eventMessage.Type);
-					}
-					break;
-			}
-			if (dialogue != null)
-			{
-				Logger.Trace("Pushing message {0} to dialogue {1}", eventMessage.Type, dialogue.DialogueId);
-				// Get the dialogue channel to send this event out one
-				dialogue.PushMessage(DialogueEventMessage.Create(eventMessage));
-			}
-			else
-			{
-				// unmatched dialogue
-				Logger.Warn("Unmatched dialogue for event {0}", eventMessage.Type);
-			}
-		}
-
+		#region Private Methods
 		private IDialogue GetDialogue(string id)
 		{
 			if (_dialogues.ContainsKey(id))
@@ -125,7 +54,7 @@ namespace AsterNET.ARI.Proxy
 		private IDialogue CreateNewDialogue(string id)
 		{
 			var newDialogue = _provider.CreateDialogue(_appName);
-			_dialogues[id] = newDialogue;	// Add to dialogues
+			AddToDialogue(id, newDialogue);
 
 			// Hook dialogue events
 			newDialogue.OnNewCommandRequest += Dialogue_OnNewCommandRequest;
@@ -137,6 +66,103 @@ namespace AsterNET.ARI.Proxy
 			return newDialogue;
 		}
 
+		private void AddToDialogue(string newId, IDialogue dialogue)
+		{
+			Logger.Info("Attaching ID {0} to Dialogue {1}", newId, dialogue.DialogueId);
+			if (!_dialogues.ContainsKey(newId))
+				_dialogues[newId] = dialogue;
+			else
+				Logger.Warn("Unable to attached ID {0} as it's already assigned to a dialogue", newId);
+		} 
+		#endregion
+
+		#region Event Handlers
+
+		private void _client_OnUnhandledEvent(IAriClient sender, Event eventMessage)
+		{
+			Logger.Trace("New Event: {0}", eventMessage.Type);
+			IDialogue dialogue = null;
+			try
+			{
+				// Catch all events and handle as required
+				switch (eventMessage.Type.ToLower())
+				{
+					case "stasisstart":
+						// Check for an existing dialogue setup for this, if none found, create a new one
+						var startArgs = (StasisStartEvent) eventMessage;
+						dialogue = _dialogues.ContainsKey(startArgs.Channel.Id)
+							? _dialogues[startArgs.Channel.Id]
+							: CreateNewDialogue(startArgs.Channel.Id);
+						break;
+					case "stasisend":
+						// Application ended
+						var endArgs = (StasisEndEvent) eventMessage;
+						if (_dialogues.ContainsKey(endArgs.Channel.Id))
+							dialogue = _dialogues[endArgs.Channel.Id];
+						// Should we unregister this channel from the dialogue at this point?
+						break;
+					default:
+						if (eventMessage.Type.ToLower().StartsWith("bridge"))
+						{
+							// Bridge related event
+							var bridge = (Bridge) eventMessage.GetType().GetProperty("Bridge").GetValue(eventMessage);
+							if (bridge != null)
+								dialogue = GetDialogue(bridge.Id);
+						}
+						else if (eventMessage.Type.ToLower().StartsWith("channel"))
+						{
+							// Channel related event
+							var channel = (Channel) eventMessage.GetType().GetProperty("Channel").GetValue(eventMessage);
+							if (channel != null)
+								dialogue = GetDialogue(channel.Id);
+						}
+						else if (eventMessage.Type.ToLower().StartsWith("recording"))
+						{
+							// Handle recordings
+							var target =
+								((LiveRecording) eventMessage.GetType().GetProperty("Recording").GetValue(eventMessage)).Target_uri.Replace(
+									"channel:", "");
+							if (target != null)
+								dialogue = GetDialogue(target);
+						}
+						else if (eventMessage.Type.ToLower().StartsWith("playback"))
+						{
+							// Handle playbacks
+							var target =
+								((Playback) eventMessage.GetType().GetProperty("Playback").GetValue(eventMessage)).Target_uri.Replace(
+									"channel:", "");
+							if (target != null)
+								dialogue = GetDialogue(target);
+						}
+						else if (eventMessage.Type.ToLower().StartsWith("dial"))
+						{
+							// Handle dial events
+							// Not 100% sure how this should be done as yet
+						}
+						else
+						{
+							// Something else...
+							Logger.Warn("Unknown event type {0}", eventMessage.Type);
+						}
+						break;
+				}
+				if (dialogue != null)
+				{
+					Logger.Trace("Pushing message {0} to dialogue {1}", eventMessage.Type, dialogue.DialogueId);
+					// Get the dialogue channel to send this event out one
+					dialogue.PushMessage(DialogueEventMessage.Create(eventMessage));
+				}
+				else
+				{
+					// unmatched dialogue
+					Logger.Warn("Unmatched dialogue for event {0}", eventMessage.Type);
+				}
+			}
+			catch (Exception ex)
+			{
+				Logger.Error("An error occured while mathcing the event to a dialogue", ex);
+			}
+		}
 		private void Dialogue_OnDialogueDestroyed(object sender, EventArgs e)
 		{
 			// A dialogue's channels have been destroyed in the backend provider
@@ -145,45 +171,57 @@ namespace AsterNET.ARI.Proxy
 
 		private void Dialogue_OnNewCommandRequest(object sender, Command e)
 		{
-			Logger.Debug("New Command on Dialogue {0}: Uri: {1}, Method: {2}, Body: {3}", ((IDialogue) sender).DialogueId, e.Url,
+			Logger.Debug("New Command on Dialogue {0}: Uri: {1}, Method: {2}, Body: {3}", ((IDialogue)sender).DialogueId, e.Url,
 				e.Method, e.Body);
 			// Look for in-dialogue addition from OriginateWithId
-			if (e.Method == "POST" && e.Url.StartsWith("/channel/"))
+			if (e.Method == "POST" && e.Url.StartsWith("/channels/") && e.Url.Split(new char[] {'/'}, StringSplitOptions.RemoveEmptyEntries).Count() == 2)
 			{
-				var newChanId = e.Url.Replace("/channel/", "");
+				var newChanId = e.Url.Replace("/channels/", "");
 				if (!string.IsNullOrEmpty(newChanId))
-				{
-					Logger.Info("Attching Channel {0} to Dialogue {1}", newChanId, ((IDialogue) sender).DialogueId);
-                    _dialogues.Add(newChanId, (IDialogue)sender);
-				}
-			}
-			if (e.Method == "POST" && e.Url.ToLower() == "/bridges")
-			{
-				dynamic bridgeBody = JsonConvert.DeserializeObject<dynamic>(e.Body);
-				var newBridgeId = bridgeBody.bridgeId;
-				if (newBridgeId != null)
-				{
-					Logger.Info("Attching Bridge {0} to Dialogue {1}", newBridgeId, ((IDialogue)sender).DialogueId);
-					_dialogues.Add(newBridgeId, (IDialogue)sender);
-				}
+					AddToDialogue(newChanId, (IDialogue)sender);
 			}
 
 			// Send command to ARI and wait for response
-			var request = new RestRequest(e.Url, (Method) Enum.Parse(typeof (Method), e.Method));
-			request.AddParameter("application/json", e.Body, ParameterType.RequestBody);
+			var request = new RestRequest(e.Url, (Method)Enum.Parse(typeof(Method), e.Method));
+			if (e.Method == "GET" && e.Body.Length > 2)
+			{
+				var body = (JObject)JsonConvert.DeserializeObject(e.Body);
+				foreach (var p in body.Children().OfType<JProperty>())
+				{
+					request.AddParameter(p.Name, p.Value);
+				}
+			}
+			else
+			{
+				request.AddParameter("application/json", e.Body, ParameterType.RequestBody);
+			}
 
-			var result = _restClient.Execute(request);
-			var rtn = new CommandResult()
+			var response = _restClient.Execute(request);
+
+			// Create CommandResult
+			var rtn = new CommandResult
 			{
 				UniqueId = e.UniqueId,
-				StatusCode = (int)result.StatusCode,
-				ResponseBody = result.Content
+				StatusCode = (int)response.StatusCode,
+				ResponseBody = response.Content
 			};
 
-			// Send back a new response message
-			((IDialogue) sender).PushMessage(DialogueResponseMessage.Create(rtn));
-		}
+			// Check result for new Id
+			if (rtn.ResponseBody.Length > 0)
+			{
+				var responseObj = JsonConvert.DeserializeObject<dynamic>(rtn.ResponseBody);
+				if (DynamicHelper.Exist(responseObj, "Id"))
+					AddToDialogue(DynamicHelper.GetProperty(responseObj, "id"), (IDialogue)sender);
+				if (DynamicHelper.Exist(responseObj, "Name"))
+					AddToDialogue(DynamicHelper.GetProperty(responseObj, "name"), (IDialogue)sender);
+			}
 
+			// Send back a new response message
+			((IDialogue)sender).PushMessage(DialogueResponseMessage.Create(rtn));
+		} 
+		#endregion
+
+		#region Public Methods
 		public void Start()
 		{
 			_client.Connect();
@@ -192,7 +230,8 @@ namespace AsterNET.ARI.Proxy
 		public void Stop()
 		{
 			_client.Disconnect();
-		}
+		} 
+		#endregion
 	}
 
 	internal class MissingDialogueException : Exception

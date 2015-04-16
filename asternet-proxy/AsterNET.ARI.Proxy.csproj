@@ -32,8 +32,9 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="AsterNET.ARI">
-      <HintPath>..\..\AsterNET.ARI\AsterNET.ARI\bin\Debug\AsterNET.ARI.dll</HintPath>
+    <Reference Include="AsterNET.ARI, Version=0.2.1.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\AsterNET.ARI\AsterNET.ARI\bin\Release\AsterNET.ARI.dll</HintPath>
     </Reference>
     <Reference Include="Newtonsoft.Json, Version=6.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
@@ -58,11 +59,15 @@
     <Compile Include="Config\ConfigurationProviders\JsonConfigurationProvider.cs" />
     <Compile Include="Config\IConfigurationProvider.cs" />
     <Compile Include="Config\ProxyConfig.cs" />
+    <Compile Include="Helpers\DynamicHelper.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
+    <None Include="NLog.config">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
