@@ -4,7 +4,6 @@ using System.Linq;
 using AsterNET.ARI.Models;
 using AsterNET.ARI.Proxy.Common;
 using AsterNET.ARI.Proxy.Common.Messages;
-using AsterNET.ARI.Proxy.Helpers;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using NLog;
