@@ -129,7 +129,7 @@ namespace AsterNET.ARI.Proxy
 							// Handle recordings
 							var target =
 								((LiveRecording) eventMessage.GetType().GetProperty("Recording").GetValue(eventMessage)).Target_uri.Replace(
-									"channel:", "");
+									"channel:", "").Replace("bridge:", "");
 							if (target != null)
 								dialogue = GetDialogue(target);
 						}
@@ -138,7 +138,7 @@ namespace AsterNET.ARI.Proxy
 							// Handle playbacks
 							var target =
 								((Playback) eventMessage.GetType().GetProperty("Playback").GetValue(eventMessage)).Target_uri.Replace(
-									"channel:", "");
+									"channel:", "").Replace("bridge:", "");
 							if (target != null)
 								dialogue = GetDialogue(target);
 						}
