@@ -137,8 +137,7 @@ namespace AsterNET.ARI.Proxy
 						{
 							// Handle playbacks
 							var target =
-								((Playback) eventMessage.GetType().GetProperty("Playback").GetValue(eventMessage)).Target_uri.Replace(
-									"channel:", "").Replace("bridge:", "");
+								((Playback) eventMessage.GetType().GetProperty("Playback").GetValue(eventMessage)).Id;
 							if (target != null)
 								dialogue = GetDialogue(target);
 						}
