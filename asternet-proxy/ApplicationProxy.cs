@@ -203,6 +203,8 @@ namespace AsterNET.ARI.Proxy
 				foreach (var p in body.Children().OfType<JProperty>())
 				{
 					request.AddParameter(p.Name, p.Value);
+					if (p.Name.ToLower() == "playbackid")
+						AddToDialogue((string)p.Value, (IDialogue) sender);
 				}
 			}
 			else
