@@ -40,7 +40,10 @@ namespace AsterNET.ARI.Proxy
 
 			// Init event handler
 			_client.OnUnhandledEvent += _client_OnUnhandledEvent;
+			_client.OnConnectionStateChanged += _client_OnConnectionStateChanged;
 		}
+
+		
 
 		#region Private Methods
 		private IDialogue GetDialogue(string id)
@@ -72,10 +75,16 @@ namespace AsterNET.ARI.Proxy
 				_dialogues[newId] = dialogue;
 			else
 				Logger.Warn("Unable to attached ID {0} as it's already assigned to a dialogue", newId);
-		} 
+		}
 		#endregion
 
 		#region Event Handlers
+
+		private void _client_OnConnectionStateChanged(object sender)
+		{
+			Logger.Warn("ARI connection state changed for {0} to {1}", _endpoint.Host,
+				_client.Connected ? "Connected" : "Disconnected");
+		}
 
 		private void _client_OnUnhandledEvent(IAriClient sender, Event eventMessage)
 		{
