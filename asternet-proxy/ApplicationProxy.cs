@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using AsterNET.ARI.Models;
@@ -16,7 +17,7 @@ namespace AsterNET.ARI.Proxy
 		private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
 		private readonly string _appName;
 		private readonly AriClient _client;
-		private readonly Dictionary<string, IDialogue> _dialogues;
+		private readonly ConcurrentDictionary<string, IDialogue> _dialogues;
 		private readonly StasisEndpoint _endpoint;
 		private readonly IBackendProvider _provider;
 		private readonly RestClient _restClient;
@@ -28,7 +29,7 @@ namespace AsterNET.ARI.Proxy
 			_appName = appName;
 
 			// Init
-			_dialogues = new Dictionary<string, IDialogue>();
+			_dialogues = new ConcurrentDictionary<string, IDialogue>();
 			_client = new AriClient(_endpoint, _appName);
 			_restClient = new RestClient(_endpoint.AriEndPoint)
 			{
@@ -203,12 +204,13 @@ namespace AsterNET.ARI.Proxy
 				foreach (var p in body.Children().OfType<JProperty>())
 				{
 					request.AddParameter(p.Name, p.Value);
-					if (p.Name.ToLower() == "playbackid")
-						AddToDialogue((string)p.Value, (IDialogue) sender);
 				}
 			}
 			else
 			{
+				var body = (JObject)JsonConvert.DeserializeObject(e.Body);
+				if (body["playbackId"] != null)
+					AddToDialogue((string)body["playbackId"], (IDialogue) sender);
 				request.AddParameter("application/json", e.Body, ParameterType.RequestBody);
 			}
 
