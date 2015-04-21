@@ -28,7 +28,7 @@ namespace AsterNET.ARI.Proxy
 				Logger.Info("Starting Application Proxy for {0}", app);
 				var appProxy = new ApplicationProxy(provider,
 					new StasisEndpoint(ProxyConfig.Current.AriHostname, ProxyConfig.Current.AriPort, ProxyConfig.Current.AriUsername,
-						ProxyConfig.Current.AriPassword), app);
+						ProxyConfig.Current.AriPassword), app.Trim());
 				_proxies.Add(appProxy);
 
 				// Start Proxy
