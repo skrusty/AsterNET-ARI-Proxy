@@ -196,7 +196,7 @@ namespace AsterNET.ARI.Proxy
 
 			// Send command to ARI and wait for response
 			var request = new RestRequest(e.Url, (Method)Enum.Parse(typeof(Method), e.Method));
-			if (e.Method == "GET" && e.Body.Length > 2)
+			if ((e.Method == "GET" && e.Body.Length > 2))
 			{
 				var body = (JObject)JsonConvert.DeserializeObject(e.Body);
 				foreach (var p in body.Children().OfType<JProperty>())
@@ -209,7 +209,10 @@ namespace AsterNET.ARI.Proxy
 				var body = (JObject)JsonConvert.DeserializeObject(e.Body);
 				if (body["playbackId"] != null)
 					AddToDialogue((string)body["playbackId"], (IDialogue) sender);
-				request.AddParameter("application/json", e.Body, ParameterType.RequestBody);
+				request.AddParameter(
+					"application/json", 
+					e.Body.Replace(":\"True\"", ":true").Replace(":\"False\"", ":false"),	// Asterisk doesn't like bool with quotes
+					ParameterType.RequestBody);
 			}
 
 			var response = _restClient.Execute(request);
