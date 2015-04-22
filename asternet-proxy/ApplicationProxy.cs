@@ -44,8 +44,6 @@ namespace AsterNET.ARI.Proxy
 			_client.OnConnectionStateChanged += _client_OnConnectionStateChanged;
 		}
 
-		
-
 		#region Private Methods
 		private IDialogue GetDialogue(string id)
 		{
@@ -87,7 +85,7 @@ namespace AsterNET.ARI.Proxy
 				_client.Connected ? "Connected" : "Disconnected");
 		}
 
-		private void _client_OnUnhandledEvent(IAriClient sender, Event eventMessage)
+		private void _client_OnUnhandledEvent(object sender, Event eventMessage)
 		{
 			Logger.Trace("New Event: {0}", eventMessage.Type);
 			IDialogue dialogue = null;
