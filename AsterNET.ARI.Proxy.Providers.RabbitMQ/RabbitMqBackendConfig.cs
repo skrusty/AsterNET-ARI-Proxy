@@ -12,6 +12,7 @@ namespace AsterNET.ARI.Proxy.Providers.RabbitMQ
 		public bool AutoDelete { get; set; }
 		public bool Exclusive { get; set; }
 		public bool Durable { get; set; }
+		public int Heartbeat { get; set; }
 
 		public static RabbitMqBackendConfig Create(dynamic config)
 		{
@@ -20,7 +21,8 @@ namespace AsterNET.ARI.Proxy.Providers.RabbitMQ
 				AmqpUri = config.AmqpUri,
 				AutoDelete = config.AutoDelete,
 				Durable = config.Durable,
-				Exclusive = config.Exclusive
+				Exclusive = config.Exclusive,
+				Heartbeat = config.Heartbeat
 			};
 		}
     }

@@ -10,6 +10,7 @@
 		"AmqpUri": "amqp://",
 		"AutoDelete": "false",
 		"Exclusive": "true",
-		"Durable":  "false"
+		"Durable": "false",
+		"Heartbeat":  30
 	}
 }

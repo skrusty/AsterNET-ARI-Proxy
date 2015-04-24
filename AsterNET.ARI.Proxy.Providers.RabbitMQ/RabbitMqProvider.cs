@@ -28,7 +28,11 @@ namespace AsterNET.ARI.Proxy.Providers.RabbitMQ
 				Exclusive = config.Exclusive
 			};
 
-			_rmqConnection = new ConnectionFactory {uri = new Uri(_amqpUri)};
+			_rmqConnection = new ConnectionFactory
+			{
+				uri = new Uri(_amqpUri),
+				RequestedHeartbeat = (ushort)config.Heartbeat
+			};
 			_controlChannels = new Dictionary<string, RabbitMqProducer>();
 		}
 
