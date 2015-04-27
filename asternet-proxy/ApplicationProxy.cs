@@ -180,6 +180,14 @@ namespace AsterNET.ARI.Proxy
 		{
 			// A dialogue's channels have been destroyed in the backend provider
 			// We should deregister the dialogue in the application proxy
+            Logger.Debug("Dialogue {0} has been destroyed", ((IDialogue)sender).DialogueId);
+			foreach (var d in _dialogues.Where(x => x.Value == sender).ToList())
+			{
+				IDialogue tryout = null;
+				if (!_dialogues.TryRemove(d.Key, out tryout))
+					Logger.Warn("Unable to remove Dialogue match {0} {1}", d.Key, d.Value.DialogueId);
+			}
+			
 		}
 
 		private void Dialogue_OnNewCommandRequest(object sender, Command e)

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using System.Text;
 using AsterNET.ARI.Proxy.Common;
 using AsterNET.ARI.Proxy.Common.Messages;
@@ -17,6 +18,8 @@ namespace AsterNET.ARI.Proxy.Providers.RabbitMQ
 		private readonly RabbitMqOptions _options;
 		private readonly ConnectionFactory _rmqConnection;
 		private readonly Dictionary<string, RabbitMqProducer> _controlChannels;
+		private readonly List<RabbitMqDialogue> _activeDialogues;
+		private readonly System.Threading.Timer _dialogueMonitor;
 
 		public RabbitMqProvider(RabbitMqBackendConfig config)
 		{
@@ -34,6 +37,8 @@ namespace AsterNET.ARI.Proxy.Providers.RabbitMQ
 				RequestedHeartbeat = (ushort)config.Heartbeat
 			};
 			_controlChannels = new Dictionary<string, RabbitMqProducer>();
+			_activeDialogues = new List<RabbitMqDialogue>();
+			_dialogueMonitor = new System.Threading.Timer(CheckDialogues, null, 5000, 5000);
 		}
 
 		public IDialogue CreateDialogue(string appName)
@@ -59,6 +64,11 @@ namespace AsterNET.ARI.Proxy.Providers.RabbitMQ
 				ServerId = ""
 			}));
 
+			lock (_activeDialogues)
+			{
+				_activeDialogues.Add(rtn);
+			}
+
 			return rtn;
 		}
 
@@ -72,6 +82,14 @@ namespace AsterNET.ARI.Proxy.Providers.RabbitMQ
 		{
 			var newChannel = new RabbitMqProducer(_rmqConnection.CreateConnection(), appName, _options);
             _controlChannels.Add(appName, newChannel);
+		}
+
+		private void CheckDialogues(object sender)
+		{
+			lock (_activeDialogues)
+			{
+				_activeDialogues.RemoveAll(x => x.CheckState() == false);
+			}
 		}
 	}
 
@@ -146,6 +164,25 @@ namespace AsterNET.ARI.Proxy.Providers.RabbitMQ
 		protected void OnError(Exception ex, RabbitMqConsumer sender, ulong deliveryTag)
 		{
 			Logger.Error("RabbitMq Consumer Error", ex);
+		}
+
+		/// <summary>
+		/// Checks the state of the open queues to ensure they've not been deleted
+		/// </summary>
+		/// <returns></returns>
+		public bool CheckState()
+		{
+			if (_eventChannel.CheckState() && _responseChannel.CheckState() && _requestChannel.CheckState()) return true;
+
+			if (OnDialogueDestroyed != null)
+				OnDialogueDestroyed(this, null);
+
+			// Temerminate the Dialogue
+			_eventChannel.Close();
+			_requestChannel.Close();
+			_responseChannel.Close();
+
+			return false;
 		}
 	}
 
@@ -232,6 +269,19 @@ namespace AsterNET.ARI.Proxy.Providers.RabbitMQ
 		{
 			Model = Connection.CreateModel();
 		}
+
+		public bool CheckState()
+		{
+			try
+			{
+				Model.QueueDeclarePassive(QueueName);
+				return true;
+			}
+			catch
+			{
+				return false;
+			}
+		}
 	}
 
 	/// <summary>
@@ -272,6 +322,19 @@ namespace AsterNET.ARI.Proxy.Providers.RabbitMQ
 		private void CreateModel()
 		{
 			Model = Connection.CreateModel();
+		}
+
+		public bool CheckState()
+		{
+			try
+			{
+				Model.QueueDeclarePassive(QueueName);
+				return true;
+			}
+			catch
+			{
+				return false;
+			}
 		}
 	}
 }
