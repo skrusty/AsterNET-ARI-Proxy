@@ -215,12 +215,15 @@ namespace AsterNET.ARI.Proxy
 			else
 			{
 				var body = (JObject)JsonConvert.DeserializeObject(e.Body);
-				if (body["playbackId"] != null)
-					AddToDialogue((string)body["playbackId"], (IDialogue) sender);
-				request.AddParameter(
-					"application/json", 
-					e.Body.Replace(":\"True\"", ":true").Replace(":\"False\"", ":false"),	// Asterisk doesn't like bool with quotes
-					ParameterType.RequestBody);
+                if (body != null)
+                {
+                    if (body["playbackId"] != null)
+                        AddToDialogue((string)body["playbackId"], (IDialogue)sender);
+                    request.AddParameter(
+                        "application/json",
+                        e.Body.Replace(":\"True\"", ":true").Replace(":\"False\"", ":false"),   // Asterisk doesn't like bool with quotes
+                        ParameterType.RequestBody);
+                }
 			}
 
 			var response = _restClient.Execute(request);
