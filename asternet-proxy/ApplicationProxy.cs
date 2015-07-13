@@ -2,6 +2,8 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using AsterNET.ARI.Models;
 using AsterNET.ARI.Proxy.Common;
 using AsterNET.ARI.Proxy.Common.Messages;
@@ -15,29 +17,35 @@ namespace AsterNET.ARI.Proxy
 	public class ApplicationProxy
 	{
 		private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
-		private readonly string _appName;
+
 		private readonly AriClient _client;
-		private readonly ConcurrentDictionary<string, IDialogue> _dialogues;
 		private readonly StasisEndpoint _endpoint;
 		private readonly IBackendProvider _provider;
 		private readonly RestClient _restClient;
 
-		public ApplicationProxy(IBackendProvider provider, StasisEndpoint endpoint, string appName)
+        public static List<ApplicationProxy> Instances = new List<ApplicationProxy>();
+        public readonly ConcurrentDictionary<string, IDialogue> _dialogues;
+        public readonly string AppName;
+        public List<IDialogue> ActiveDialogues;
+	    public DateTime Created;
+
+        private ApplicationProxy(IBackendProvider provider, StasisEndpoint endpoint, string appName)
 		{
 			_provider = provider;
 			_endpoint = endpoint;
-			_appName = appName;
+			AppName = appName;
+            Created = DateTime.Now;
 
 			// Init
 			_dialogues = new ConcurrentDictionary<string, IDialogue>();
-			_client = new AriClient(_endpoint, _appName);
+			_client = new AriClient(_endpoint, AppName);
 			_restClient = new RestClient(_endpoint.AriEndPoint)
 			{
 				Authenticator = new HttpBasicAuthenticator(_endpoint.Username, _endpoint.Password)
 			};
-
+            ActiveDialogues = new List<IDialogue>();
 			// Register this app name with the backend provider
-			_provider.RegisterApplication(_appName);
+			_provider.RegisterApplication(AppName);
 
 			// Init event handler
 			_client.OnUnhandledEvent += _client_OnUnhandledEvent;
@@ -54,7 +62,8 @@ namespace AsterNET.ARI.Proxy
 
 		private IDialogue CreateNewDialogue(string id)
 		{
-			var newDialogue = _provider.CreateDialogue(_appName);
+			var newDialogue = _provider.CreateDialogue(AppName);
+            ActiveDialogues.Add(newDialogue);
 			AddToDialogue(id, newDialogue);
 
 			// Hook dialogue events
@@ -177,20 +186,27 @@ namespace AsterNET.ARI.Proxy
 			}
 		}
 		private void Dialogue_OnDialogueDestroyed(object sender, EventArgs e)
-		{
-			// A dialogue's channels have been destroyed in the backend provider
-			// We should deregister the dialogue in the application proxy
-            Logger.Debug("Dialogue {0} has been destroyed", ((IDialogue)sender).DialogueId);
-			foreach (var d in _dialogues.Where(x => x.Value == sender).ToList())
-			{
-				IDialogue tryout = null;
-				if (!_dialogues.TryRemove(d.Key, out tryout))
-					Logger.Warn("Unable to remove Dialogue match {0} {1}", d.Key, d.Value.DialogueId);
-			}
-			
-		}
+        {
+            DeleteDialogue((IDialogue)sender);
+        }
 
-		private void Dialogue_OnNewCommandRequest(object sender, Command e)
+        private void DeleteDialogue(IDialogue sender)
+        {
+            // A dialogue's channels have been destroyed in the backend provider
+            // We should deregister the dialogue in the application proxy
+            Logger.Debug("Dialogue {0} has been destroyed", sender.DialogueId);
+            foreach (var d in _dialogues.Where(x => x.Value == sender).ToList())
+            {
+                IDialogue tryout = null;
+                if (!_dialogues.TryRemove(d.Key, out tryout))
+                    Logger.Warn("Unable to remove Dialogue match {0} {1}", d.Key, d.Value.DialogueId);
+            }
+
+            // Remove from Active Dialogues
+            ActiveDialogues.RemoveAll(x => x.DialogueId == sender.DialogueId);
+        }
+
+        private void Dialogue_OnNewCommandRequest(object sender, Command e)
 		{
 			Logger.Debug("New Command on Dialogue {0}: Uri: {1}, Method: {2}, Body: {3}", ((IDialogue)sender).DialogueId, e.Url,
 				e.Method, e.Body);
@@ -257,12 +273,54 @@ namespace AsterNET.ARI.Proxy
 			_client.Connect();
 		}
 
-		public void Stop()
+		public void Stop(bool graceful = false)
 		{
-			_client.Disconnect();
-		} 
-		#endregion
-	}
+            var result = Task.Run(() =>
+            {
+                if (graceful)
+                {
+                    // Wait for all dialogues to finish
+                    bool complete = false;
+                    while (!complete)
+                    {
+                        if (ActiveDialogues.Count == 0)
+                            complete = true;
+                        else
+                            Thread.Sleep(500);
+                    }
+                }
+                Logger.Info("Disconnecting proxy from {0}", AppName);
+                _client.Disconnect();
+            });
+        }
+
+        public void DeleteDialogue(string Id)
+        {
+            var dialogue = ActiveDialogues.SingleOrDefault(x => x.DialogueId == Guid.Parse(Id));
+            if (dialogue == null)
+                return;
+            DeleteDialogue(dialogue);
+        }
+
+        public static ApplicationProxy Create(IBackendProvider provider, StasisEndpoint endpoint, string appName)
+        {
+            Logger.Info("Starting Application Proxy for {0}", appName);
+
+            var rtn = new ApplicationProxy(provider, endpoint, appName);
+            Instances.Add(rtn);
+            rtn.Start();
+
+            return rtn;
+        }
+
+        public static void Terminate(ApplicationProxy proxy, bool graceful)
+        {
+            proxy.Stop(graceful);
+            Instances.Remove(proxy);
+        }
+      
+        #endregion
+    }
 
 	internal class MissingDialogueException : Exception
 	{

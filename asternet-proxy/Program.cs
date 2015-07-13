@@ -1,9 +1,8 @@
 ﻿using System;
-using System.Collections.Generic;
 using AsterNET.ARI.Proxy.Common;
 using AsterNET.ARI.Proxy.Config;
-using AsterNET.ARI.Proxy.Config.ConfigurationProviders;
 using AsterNET.ARI.Proxy.Providers.RabbitMQ;
+using Nancy.Hosting.Self;
 using NLog;
 
 namespace AsterNET.ARI.Proxy
@@ -11,28 +10,31 @@ namespace AsterNET.ARI.Proxy
 	class Program
 	{
 		private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
-		private static List<ApplicationProxy> _proxies;
 		static void Main(string[] args)
 		{
-			Logger.Info("Starting Ari Proxy");
-			// Load config
-			ProxyConfig.Current = new JsonConfigurationProvider().LoadConfiguration<ProxyConfig>("config");
+            Logger.Info("Starting Ari Proxy");
+
+            // Load config
+            ProxyConfig.Current = ProxyConfig.Load();
+
+            // Init
+            BackendProvider.Current = CreateProvider(ProxyConfig.Current.BackendProvider, ProxyConfig.Current.BackendConfig);
 			
-			// Init
-			IBackendProvider provider = CreateProvider(ProxyConfig.Current.BackendProvider, ProxyConfig.Current.BackendConfig);
-			_proxies = new List<ApplicationProxy>();
+
+            // Load APCoRs if required
+            if(ProxyConfig.Current.APCoR != null)
+            {
+                var host = new NancyHost(new Uri(ProxyConfig.Current.APCoR.BindUri));
+                host.Start();
+            }
 
 			// Load Applicaton Proxies
 			foreach (var app in ProxyConfig.Current.Applications)
 			{
-				Logger.Info("Starting Application Proxy for {0}", app);
-				var appProxy = new ApplicationProxy(provider,
+				
+				var appProxy = ApplicationProxy.Create(BackendProvider.Current,
 					new StasisEndpoint(ProxyConfig.Current.AriHostname, ProxyConfig.Current.AriPort, ProxyConfig.Current.AriUsername,
 						ProxyConfig.Current.AriPassword), app.Trim());
-				_proxies.Add(appProxy);
-
-				// Start Proxy
-				appProxy.Start();
 			}
 
 
@@ -60,10 +62,15 @@ namespace AsterNET.ARI.Proxy
 		private static void Console_CancelKeyPress(object sender, ConsoleCancelEventArgs e)
 		{
 			// Terminate Proxy		
-			_proxies.ForEach(x =>
+			ApplicationProxy.Instances.ForEach(x =>
 			{
 				x.Stop();
 			});
 		}
 	}
+
+    public class BackendProvider
+    {
+        public static IBackendProvider Current { get; set; }
+    }
 }

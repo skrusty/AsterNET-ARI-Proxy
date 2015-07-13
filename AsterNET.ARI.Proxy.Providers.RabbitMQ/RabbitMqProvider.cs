@@ -111,13 +111,16 @@ namespace AsterNET.ARI.Proxy.Providers.RabbitMQ
 		public event EventHandler OnDialogueDestroyed;
 		public Guid DialogueId { get; set; }
 
-		public RabbitMqDialogue(RabbitMqProducer eventChannel, RabbitMqProducer responseChannel,
+	    public DateTime Created { get; set; }
+
+	    public RabbitMqDialogue(RabbitMqProducer eventChannel, RabbitMqProducer responseChannel,
 			RabbitMqConsumer requestChannel, Guid dialogueId)
 		{
 			_eventChannel = eventChannel;
 			_responseChannel = responseChannel;
 			_requestChannel = requestChannel;
 			DialogueId = dialogueId;
+	        Created = DateTime.Now;
 
 			// Attach to Consumer Channel
 			_requestChannel.ReadFromQueue(OnDequeue, OnError);

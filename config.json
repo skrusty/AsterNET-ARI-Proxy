@@ -1,16 +1,19 @@
 {
-	"ServerId": "test",
-	"AriHostname": "localhost",
-	"AriPort": 8088,
-	"AriUsername": "",
-	"AriPassword": "",
-	"Applications": [ "test" ],
-	"BackendProvider": "rmq",
-	"BackendConfig": {
-		"AmqpUri": "amqp://",
-		"AutoDelete": "false",
-		"Exclusive": "true",
-		"Durable": "false",
-		"Heartbeat":  30
-	}
+    "ServerId": "test",
+    "AriHostname": "localhost",
+    "AriPort": 8088,
+    "AriUsername": "",
+    "AriPassword": "",
+    "Applications": [ "test" ],
+    "BackendProvider": "rmq",
+    "BackendConfig": {
+        "AmqpUri": "amqp://",
+        "AutoDelete": "false",
+        "Exclusive": "true",
+        "Durable": "false",
+        "Heartbeat": 30
+    },
+    "APCoR": {
+        "BindUri":  "http://localhost:1234"
+    }
 }
