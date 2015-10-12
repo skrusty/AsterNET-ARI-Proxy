@@ -10,7 +10,7 @@ namespace AsterNET.ARI.Proxy.Common
 		public MessageType Type { get; set; }
 		public NewEventMessage Body { get; set; }
 
-		public static DialogueEventMessage Create(Event newEvent)
+		public static DialogueEventMessage Create(Event newEvent, string serverId)
 		{
 			return new DialogueEventMessage()
 			{
@@ -19,7 +19,7 @@ namespace AsterNET.ARI.Proxy.Common
 				{
 					Type = newEvent.Type,
 					Timestamp = DateTime.UtcNow,
-					ServerId = "", //TODO
+					ServerId = serverId,
 					AriBody = JsonConvert.SerializeObject(newEvent)
 				}
 			};

@@ -5,13 +5,24 @@
     "AriUsername": "",
     "AriPassword": "",
     "Applications": [ "test" ],
+    "CloseDialogueOnPrimaryStasisEnd": "false",
     "BackendProvider": "rmq",
     "BackendConfig": {
         "AmqpUri": "amqp://",
-        "AutoDelete": "false",
-        "Exclusive": "true",
-        "Durable": "false",
-        "Heartbeat": 30
+        "DialogueConfig": {
+            "AutoDelete": "true",
+            "Exclusive": "false",
+            "Durable": "false",
+            "TTL":  30000
+        },
+        "AppQueueConfig": {
+            "AutoDelete": "false",
+            "Exclusive": "false",
+            "Durable": "false",
+            "TTL":  -1
+        },
+        "Heartbeat": 30,
+        "CheckForClosedDialogues": "true"
     },
     "APCoR": {
         "BindUri":  "http://localhost:1234"

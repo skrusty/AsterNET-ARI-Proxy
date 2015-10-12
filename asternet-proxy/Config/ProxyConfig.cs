@@ -17,7 +17,8 @@ namespace AsterNET.ARI.Proxy.Config
 		public string AriUsername { get; set; }
 		public string AriPassword { get; set; }
 		public List<string> Applications { get; set; }
-		public string BackendProvider { get; set; }
+        public bool CloseDialogueOnPrimaryStasisEnd { get; set; }
+        public string BackendProvider { get; set; }
 		public dynamic BackendConfig { get; set; }
         public APCoRConfig APCoR { get; set; }
 

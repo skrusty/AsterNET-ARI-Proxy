@@ -12,6 +12,9 @@ namespace AsterNET.ARI.Proxy.Common
 		event EventHandler OnDialogueDestroyed;
 		Guid DialogueId { get; set; }
         DateTime Created { get; set; }
+        string PrimaryDialogueChannel { get; set; }
+        bool AllowDelete { get; set; }
 		void PushMessage(IDialogueMessage message);
+	    void Close();
 	}
 }

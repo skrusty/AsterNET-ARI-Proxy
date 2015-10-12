@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using AsterNET.ARI.Proxy.Common;
 using AsterNET.ARI.Proxy.Common.Messages;
 using Newtonsoft.Json;
@@ -12,11 +13,12 @@ using RabbitMQ.Client.Events;
 
 namespace AsterNET.ARI.Proxy.Providers.RabbitMQ
 {
-	public class RabbitMqProvider : IBackendProvider
+	public class RabbitMqProvider : IBackendProvider, IDisposable
 	{
 		private readonly string _amqpUri;
-		private readonly RabbitMqOptions _options;
-		private readonly ConnectionFactory _rmqConnection;
+		private readonly RabbitMqBackendQueueConfig _appQueueOptions;
+        private readonly RabbitMqBackendQueueConfig _dialogueQueueOptions;
+        private readonly ConnectionFactory _rmqConnection;
 		private readonly Dictionary<string, RabbitMqProducer> _controlChannels;
 		private readonly List<RabbitMqDialogue> _activeDialogues;
 		private readonly System.Threading.Timer _dialogueMonitor;
@@ -24,36 +26,36 @@ namespace AsterNET.ARI.Proxy.Providers.RabbitMQ
 		public RabbitMqProvider(RabbitMqBackendConfig config)
 		{
 			_amqpUri = config.AmqpUri;
-			_options = new RabbitMqOptions()
-			{
-				AutoDelete = config.AutoDelete,
-				Durable = config.Durable,
-				Exclusive = config.Exclusive
-			};
+		    _appQueueOptions = config.ApplicationQueueConfig;
 
-			_rmqConnection = new ConnectionFactory
+
+		    _dialogueQueueOptions = config.DialogueQueueConfig;
+
+            _rmqConnection = new ConnectionFactory
 			{
 				uri = new Uri(_amqpUri),
 				RequestedHeartbeat = (ushort)config.Heartbeat
 			};
 			_controlChannels = new Dictionary<string, RabbitMqProducer>();
 			_activeDialogues = new List<RabbitMqDialogue>();
-			_dialogueMonitor = new System.Threading.Timer(CheckDialogues, null, 5000, 5000);
+
+            if(config.CheckForClosedDialogues)
+			    _dialogueMonitor = new System.Threading.Timer(CheckDialogues, null, 5000, 5000);
 		}
 
 		public IDialogue CreateDialogue(string appName)
 		{
 			if (!_controlChannels.ContainsKey(appName))
-				CreateControlChannel(appName);
+				CreateControlChannel(appName, _appQueueOptions);
 
 			// Assigned new Id
 			var newDialogueId = Guid.NewGuid();
 
 			// Create Dialoge Channels
 			var rtn = new RabbitMqDialogue(
-				new RabbitMqProducer(_rmqConnection.CreateConnection(), "events_" + newDialogueId, _options),
-				new RabbitMqProducer(_rmqConnection.CreateConnection(), "responses_" + newDialogueId, _options),
-				new RabbitMqConsumer(_rmqConnection.CreateConnection(), "commands_" + newDialogueId, _options),
+				new RabbitMqProducer(_rmqConnection.CreateConnection(), "events_" + newDialogueId, _dialogueQueueOptions),
+				new RabbitMqProducer(_rmqConnection.CreateConnection(), "responses_" + newDialogueId, _dialogueQueueOptions),
+				new RabbitMqConsumer(_rmqConnection.CreateConnection(), "commands_" + newDialogueId, _dialogueQueueOptions),
 				newDialogueId);
 
 			// Send NewDialogue Event
@@ -74,13 +76,13 @@ namespace AsterNET.ARI.Proxy.Providers.RabbitMQ
 
 		public void RegisterApplication(string appName)
 		{
-			CreateControlChannel(appName);
+			CreateControlChannel(appName, _appQueueOptions);
 		}
 
 
-		private void CreateControlChannel(string appName)
+		private void CreateControlChannel(string appName, RabbitMqBackendQueueConfig options)
 		{
-			var newChannel = new RabbitMqProducer(_rmqConnection.CreateConnection(), appName, _options);
+			var newChannel = new RabbitMqProducer(_rmqConnection.CreateConnection(), appName, options);
             _controlChannels.Add(appName, newChannel);
 		}
 
@@ -91,13 +93,19 @@ namespace AsterNET.ARI.Proxy.Providers.RabbitMQ
 				_activeDialogues.RemoveAll(x => x.CheckState() == false);
 			}
 		}
-	}
 
-	public class RabbitMqOptions
-	{
-		public bool Durable { get; set; }
-		public bool AutoDelete { get; set; }
-		public bool Exclusive { get; set; }
+	    public void Dispose()
+	    {
+            _dialogueMonitor.Change(Timeout.Infinite, Timeout.Infinite);
+            foreach (var i in _controlChannels)
+	        {
+	            i.Value.Close();
+            }
+	        foreach (var i in _activeDialogues)
+	        {
+	            i.Close();
+	        }
+        }
 	}
 
 	public class RabbitMqDialogue : IDialogue
@@ -112,6 +120,10 @@ namespace AsterNET.ARI.Proxy.Providers.RabbitMQ
 		public Guid DialogueId { get; set; }
 
 	    public DateTime Created { get; set; }
+
+	    public string PrimaryDialogueChannel { get; set; }
+
+	    public bool AllowDelete { get; set; }
 
 	    public RabbitMqDialogue(RabbitMqProducer eventChannel, RabbitMqProducer responseChannel,
 			RabbitMqConsumer requestChannel, Guid dialogueId)
@@ -150,7 +162,18 @@ namespace AsterNET.ARI.Proxy.Providers.RabbitMQ
 			}
 		}
 
-		protected void OnDequeue(string message, RabbitMqConsumer sender, ulong deliveryTag)
+	    public void Close()
+	    {
+            // Close the Dialogue
+            _eventChannel.Close();
+            _requestChannel.Close();
+            _responseChannel.Close();
+
+	        if (OnDialogueDestroyed != null)
+                OnDialogueDestroyed(this, null);
+	    }
+
+	    protected void OnDequeue(string message, RabbitMqConsumer sender, ulong deliveryTag)
 		{
 			Logger.Trace("Receiving request from dialogue {0}: {1}", DialogueId, message);
 			if (OnNewCommandRequest == null) return;
@@ -180,10 +203,7 @@ namespace AsterNET.ARI.Proxy.Providers.RabbitMQ
 			if (OnDialogueDestroyed != null)
 				OnDialogueDestroyed(this, null);
 
-			// Temerminate the Dialogue
-			_eventChannel.Close();
-			_requestChannel.Close();
-			_responseChannel.Close();
+		    Close();
 
 			return false;
 		}
@@ -192,10 +212,10 @@ namespace AsterNET.ARI.Proxy.Providers.RabbitMQ
 	public class RabbitMqConsumer : IDisposable
 	{
 		private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
-		private readonly RabbitMqOptions _options;
+		private readonly RabbitMqBackendQueueConfig _options;
 		private EventingBasicConsumer _consumer;
 
-		public RabbitMqConsumer(IConnection connection, string queueName, RabbitMqOptions options)
+		public RabbitMqConsumer(IConnection connection, string queueName, RabbitMqBackendQueueConfig options)
 		{
 			_options = options;
 			Connection = connection;
@@ -291,13 +311,16 @@ namespace AsterNET.ARI.Proxy.Providers.RabbitMQ
 	/// </summary>
 	public class RabbitMqProducer : IDisposable
 	{
-		public RabbitMqProducer(IConnection connection, string queueName, RabbitMqOptions options)
+		public RabbitMqProducer(IConnection connection, string queueName, RabbitMqBackendQueueConfig options)
 		{
 			Connection = connection;
 			QueueName = queueName;
 
 			CreateModel();
-			Model.QueueDeclare(QueueName, options.Durable, options.Exclusive, options.AutoDelete, null);
+		    var args = new Dictionary<string, object>();
+            if(options.TTL > -1)
+		        args["x-message-ttl"] = options.TTL;
+			Model.QueueDeclare(QueueName, options.Durable, options.Exclusive, options.AutoDelete, args);
 		}
 
 		private IModel Model { get; set; }

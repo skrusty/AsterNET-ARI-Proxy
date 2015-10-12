@@ -10,17 +10,13 @@ namespace AsterNET.ARI.Proxy.APCoR
     {
         public ApplicationsModule() : base("/v1/applications")
         {
-            Get[""] = _ =>
-            {
-                // Return list of applications
-                return (from x in ApplicationProxy.Instances
-                        select new ApplicationModel()
-                        {
-                            Created = x.Created,
-                            Name = x.AppName,
-                            DialogueCount = x.ActiveDialogues.Count
-                        }).ToList();
-            };
+            Get[""] = _ => (from x in ApplicationProxy.Instances
+                select new ApplicationModel()
+                {
+                    Created = x.Created,
+                    Name = x.AppName,
+                    DialogueCount = x.ActiveDialogues.Count
+                }).ToList();
 
             Post["/{name}"] = args =>
             {
@@ -45,8 +41,8 @@ namespace AsterNET.ARI.Proxy.APCoR
                 if (app == null)
                     return HttpStatusCode.NotFound;
 
-                // Stop App (graceful)
-                ApplicationProxy.Terminate(app, true);
+                // Stop App
+                ApplicationProxy.Terminate(app);
 
                 return HttpStatusCode.OK;
             };

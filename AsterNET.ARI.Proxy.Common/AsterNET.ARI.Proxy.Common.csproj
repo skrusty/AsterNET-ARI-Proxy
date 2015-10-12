@@ -32,7 +32,7 @@
   <ItemGroup>
     <Reference Include="AsterNET.ARI, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\packages\AsterNET.ARI.1.0.0\lib\AsterNET.ARI.dll</HintPath>
+      <HintPath>..\..\AsterNET.ARI\AsterNET.ARI\bin\Release\AsterNET.ARI.dll</HintPath>
     </Reference>
     <Reference Include="Newtonsoft.Json, Version=6.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
