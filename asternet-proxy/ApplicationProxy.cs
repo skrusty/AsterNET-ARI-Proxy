@@ -305,7 +305,8 @@ namespace AsterNET.ARI.Proxy
         public void Stop()
         {
             Logger.Info("Disconnecting proxy from {0}", AppName);
-            _client.Disconnect();
+            if(_client.ConnectionState == Middleware.ConnectionState.Open)
+                _client.Disconnect();
         }
 
         public void DeleteDialogue(string Id)
