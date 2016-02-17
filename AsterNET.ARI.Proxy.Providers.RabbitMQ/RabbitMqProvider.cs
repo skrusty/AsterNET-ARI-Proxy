@@ -15,8 +15,7 @@ namespace AsterNET.ARI.Proxy.Providers.RabbitMQ
 {
 	public class RabbitMqProvider : IBackendProvider, IDisposable
 	{
-		private readonly string _amqpUri;
-		private readonly RabbitMqBackendQueueConfig _appQueueOptions;
+	    private readonly RabbitMqBackendQueueConfig _appQueueOptions;
         private readonly RabbitMqBackendQueueConfig _dialogueQueueOptions;
         private readonly ConnectionFactory _rmqConnection;
 		private readonly Dictionary<string, RabbitMqProducer> _controlChannels;
@@ -25,7 +24,7 @@ namespace AsterNET.ARI.Proxy.Providers.RabbitMQ
 
 		public RabbitMqProvider(RabbitMqBackendConfig config)
 		{
-			_amqpUri = config.AmqpUri;
+		    var amqpUri = config.AmqpUri;
 		    _appQueueOptions = config.ApplicationQueueConfig;
 
 
@@ -33,7 +32,7 @@ namespace AsterNET.ARI.Proxy.Providers.RabbitMQ
 
             _rmqConnection = new ConnectionFactory
 			{
-				uri = new Uri(_amqpUri),
+				uri = new Uri(amqpUri),
 				RequestedHeartbeat = (ushort)config.Heartbeat
 			};
 			_controlChannels = new Dictionary<string, RabbitMqProducer>();
@@ -45,7 +44,8 @@ namespace AsterNET.ARI.Proxy.Providers.RabbitMQ
 
 		public IDialogue CreateDialogue(string appName)
 		{
-			if (!_controlChannels.ContainsKey(appName))
+		    var newConn = _rmqConnection.CreateConnection();
+            if (!_controlChannels.ContainsKey(appName))
 				CreateControlChannel(appName, _appQueueOptions);
 
 			// Assigned new Id
@@ -53,10 +53,10 @@ namespace AsterNET.ARI.Proxy.Providers.RabbitMQ
 
 			// Create Dialoge Channels
 			var rtn = new RabbitMqDialogue(
-				new RabbitMqProducer(_rmqConnection.CreateConnection(), "events_" + newDialogueId, _dialogueQueueOptions),
-				new RabbitMqProducer(_rmqConnection.CreateConnection(), "responses_" + newDialogueId, _dialogueQueueOptions),
-				new RabbitMqConsumer(_rmqConnection.CreateConnection(), "commands_" + newDialogueId, _dialogueQueueOptions),
-				newDialogueId);
+				new RabbitMqProducer(newConn, "events_" + newDialogueId, _dialogueQueueOptions),
+				new RabbitMqProducer(newConn, "responses_" + newDialogueId, _dialogueQueueOptions),
+				new RabbitMqConsumer(newConn, "commands_" + newDialogueId, _dialogueQueueOptions),
+				newDialogueId, newConn);
 
 			// Send NewDialogue Event
 			_controlChannels[appName].PushToQueue(JsonConvert.SerializeObject(new NewDialogInfo()
@@ -114,8 +114,9 @@ namespace AsterNET.ARI.Proxy.Providers.RabbitMQ
 		private readonly RabbitMqProducer _eventChannel;
 		private readonly RabbitMqProducer _responseChannel;
 		private readonly RabbitMqConsumer _requestChannel;
+	    private readonly IConnection _dialogueConnection;
 
-		public event EventHandler<Command> OnNewCommandRequest;
+	    public event EventHandler<Command> OnNewCommandRequest;
 		public event EventHandler OnDialogueDestroyed;
 		public Guid DialogueId { get; set; }
 
@@ -126,12 +127,13 @@ namespace AsterNET.ARI.Proxy.Providers.RabbitMQ
 	    public bool AllowDelete { get; set; }
 
 	    public RabbitMqDialogue(RabbitMqProducer eventChannel, RabbitMqProducer responseChannel,
-			RabbitMqConsumer requestChannel, Guid dialogueId)
+			RabbitMqConsumer requestChannel, Guid dialogueId, IConnection dialogueConnection)
 		{
 			_eventChannel = eventChannel;
 			_responseChannel = responseChannel;
 			_requestChannel = requestChannel;
-			DialogueId = dialogueId;
+	        _dialogueConnection = dialogueConnection;
+	        DialogueId = dialogueId;
 	        Created = DateTime.Now;
 
 			// Attach to Consumer Channel
@@ -165,9 +167,14 @@ namespace AsterNET.ARI.Proxy.Providers.RabbitMQ
 	    public void Close()
 	    {
             // Close the Dialogue
-            _eventChannel.Close();
-            _requestChannel.Close();
-            _responseChannel.Close();
+            // Stop reading
+            _requestChannel.StopReading();
+	        _requestChannel.Close();
+	        _responseChannel.Close();
+	        _eventChannel.Close();
+
+            // Close Connection
+	        _dialogueConnection.Close();
 
 	        if (OnDialogueDestroyed != null)
                 OnDialogueDestroyed(this, null);
@@ -285,8 +292,8 @@ namespace AsterNET.ARI.Proxy.Providers.RabbitMQ
 
 		public void Close()
 		{
-			Connection.Close();
-		}
+            Model.Close();
+        }
 
 		private void CreateModel()
 		{
@@ -321,9 +328,19 @@ namespace AsterNET.ARI.Proxy.Providers.RabbitMQ
             if(options.TTL > -1)
 		        args["x-message-ttl"] = options.TTL;
 			Model.QueueDeclare(QueueName, options.Durable, options.Exclusive, options.AutoDelete, args);
+            
+            // Handle Unroutable Messages
+            Model.BasicReturn += Model_BasicReturn;
 		}
 
-		private IModel Model { get; set; }
+        private void Model_BasicReturn(object sender, BasicReturnEventArgs e)
+        {
+            // Called when a message was pushed to the queue, but no consumers were availble to receive it
+            // This only gets called if the message was pushed with the Mandatory Flag!
+
+        }
+
+        private IModel Model { get; set; }
 		public IConnection Connection { get; set; }
 		public string QueueName { get; set; }
 		public string DialogId { get; set; }
@@ -342,7 +359,14 @@ namespace AsterNET.ARI.Proxy.Providers.RabbitMQ
 
 		public void Close()
 		{
-			Connection.Close();
+		    try
+		    {
+		        Model.Close();
+		    }
+		    catch (Exception ex)
+		    {
+		        // log out expcetion here
+		    }
 		}
 
 		private void CreateModel()
