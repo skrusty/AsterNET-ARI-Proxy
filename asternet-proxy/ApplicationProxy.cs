@@ -64,22 +64,30 @@ namespace AsterNET.ARI.Proxy
 
         private IDialogue CreateNewDialogue(string id)
         {
-            var newDialogue = _provider.CreateDialogue(AppName);
-            newDialogue.Created = DateTime.UtcNow;
-            newDialogue.PrimaryDialogueChannel = id;
+            try
+            {
+                var newDialogue = _provider.CreateDialogue(AppName);
+                newDialogue.Created = DateTime.UtcNow;
+                newDialogue.PrimaryDialogueChannel = id;
 
-            // Activate dialogue
-            ActiveDialogues.Add(newDialogue);
-            AddToDialogue(id, newDialogue);
+                // Activate dialogue
+                ActiveDialogues.Add(newDialogue);
+                AddToDialogue(id, newDialogue);
 
-            // Hook dialogue events
-            newDialogue.OnNewCommandRequest += Dialogue_OnNewCommandRequest;
-            newDialogue.OnDialogueDestroyed += Dialogue_OnDialogueDestroyed;
+                // Hook dialogue events
+                newDialogue.OnNewCommandRequest += Dialogue_OnNewCommandRequest;
+                newDialogue.OnDialogueDestroyed += Dialogue_OnDialogueDestroyed;
 
-            Logger.Debug("Created new Dialogue {0}", newDialogue.DialogueId);
-            Logger.Debug("Attached {0} to Dialogue {1}", id, newDialogue.DialogueId);
+                Logger.Debug("Created new Dialogue {0}", newDialogue.DialogueId);
+                Logger.Debug("Attached {0} to Dialogue {1}", id, newDialogue.DialogueId);
 
-            return newDialogue;
+                return newDialogue;
+            }
+            catch (Exception ex)
+            {
+                // Failed to create new Dialogue
+                throw new DialogueException(ex.Message, ex);
+            }
         }
 
         private void AddToDialogue(string newId, IDialogue dialogue)
@@ -202,6 +210,16 @@ namespace AsterNET.ARI.Proxy
                     // unmatched dialogue
                     Logger.Warn("Unmatched dialogue for event {0} with id {1}", eventMessage.Type, dialogueMatchId);
                 }
+            }
+            catch (DialogueException dex)
+            {
+                Logger.Error($"Unable to create new dialogue. {dex.Message}", dex);
+                // Should only happen when we start a new dialogue
+                // Set channel variables regarding the status of proxy and failure reason
+                var startArgs = (StasisStartEvent)eventMessage;
+                ((AriClient) sender).Channels.SetChannelVar(startArgs.Channel.Id, "PROXYRESULT", "FAILED");
+                ((AriClient) sender).Channels.SetChannelVar(startArgs.Channel.Id, "PROXYRESULT_REASON", dex.Message);
+                ((AriClient) sender).Channels.ContinueInDialplan(startArgs.Channel.Id);
             }
             catch (Exception ex)
             {
@@ -335,6 +353,14 @@ namespace AsterNET.ARI.Proxy
         }
 
         #endregion
+    }
+
+    internal class DialogueException : Exception
+    {
+        public DialogueException(string message, Exception exception) : base(message, exception)
+        {
+            
+        }
     }
 
     internal class MissingDialogueException : Exception
