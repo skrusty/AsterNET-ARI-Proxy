@@ -1,2 +1,5 @@
 language: csharp
 solution: ./AsterNET.ARI.Proxy.sln
+script: 
+  - nuget restore
+  - xbuild ./AsterNET.ARI.Proxy.sln
