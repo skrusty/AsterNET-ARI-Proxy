@@ -183,7 +183,8 @@ namespace AsterNET.ARI.Proxy
                         else if (eventMessage.Type.ToLower().StartsWith("dial"))
                         {
                             // Handle dial events
-                            // Not 100% sure how this should be done as yet
+                            var target =
+                                ((DialEvent)eventMessage.GetType().GetProperty("Caller").GetValue(eventMessage)).Caller;
                         }
                         else
                         {
