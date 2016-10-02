@@ -1,5 +1,5 @@
 language: csharp
 solution: ./AsterNET.ARI.Proxy.sln
 script: 
-  - nuget restore
+  - mono --runtime=v4.0 nuget.exe restore YourSolution.sln
   - xbuild ./AsterNET.ARI.Proxy.sln
