@@ -12,6 +12,7 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using NLog;
 using RestSharp;
+using RestSharp.Authenticators;
 
 namespace AsterNET.ARI.Proxy
 {
