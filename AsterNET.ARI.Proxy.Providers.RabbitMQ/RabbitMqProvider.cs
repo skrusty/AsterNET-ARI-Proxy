@@ -34,8 +34,11 @@ namespace AsterNET.ARI.Proxy.Providers.RabbitMQ
 
             _rmqConnection = new ConnectionFactory
             {
-                uri = new Uri(amqpUri),
-                RequestedHeartbeat = (ushort) config.Heartbeat
+                Uri = new Uri(amqpUri),
+                RequestedHeartbeat = (ushort) config.Heartbeat,
+                AutomaticRecoveryEnabled = true,
+                TopologyRecoveryEnabled = true,
+                NetworkRecoveryInterval = TimeSpan.FromSeconds(1)
             };
 
             // Create the primary application channel
