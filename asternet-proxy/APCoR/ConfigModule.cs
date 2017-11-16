@@ -1,5 +1,5 @@
 ﻿using Nancy;
-using AsterNET.ARI.Proxy.Config;
+using AsterNET.ARI.Proxy.Common.Config;
 
 namespace AsterNET.ARI.Proxy.APCoR
 {

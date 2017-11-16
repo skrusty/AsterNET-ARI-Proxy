@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="..\AsterNET.ARI.Proxy.Common\DialogueEventMessage.cs" Link="DialogueEventMessage.cs" />
+    <Compile Include="..\AsterNET.ARI.Proxy.Common\DialogueRequestMessage.cs" Link="DialogueRequestMessage.cs" />
+    <Compile Include="..\AsterNET.ARI.Proxy.Common\DialogueResponseMessage.cs" Link="DialogueResponseMessage.cs" />
+    <Compile Include="..\AsterNET.ARI.Proxy.Common\IBackendProvider.cs" Link="IBackendProvider.cs" />
+    <Compile Include="..\AsterNET.ARI.Proxy.Common\IDialogue.cs" Link="IDialogue.cs" />
+    <Compile Include="..\AsterNET.ARI.Proxy.Common\IDialogueMessage.cs" Link="IDialogueMessage.cs" />
+    <Compile Include="..\AsterNET.ARI.Proxy.Common\Config\ConfigurationProviders\JsonConfigurationProvider.cs" Link="Config\ConfigurationProviders\JsonConfigurationProvider.cs" />
+    <Compile Include="..\AsterNET.ARI.Proxy.Common\Config\IConfigurationProvider.cs" Link="Config\IConfigurationProvider.cs" />
+    <Compile Include="..\AsterNET.ARI.Proxy.Common\Config\ProxyConfig.cs" Link="Config\ProxyConfig.cs" />
+    <Compile Include="..\AsterNET.ARI.Proxy.Common\Messages\Command.cs" Link="Messages\Command.cs" />
+    <Compile Include="..\AsterNET.ARI.Proxy.Common\Messages\CommandResult.cs" Link="Messages\CommandResult.cs" />
+    <Compile Include="..\AsterNET.ARI.Proxy.Common\Messages\NewDialogInfo.cs" Link="Messages\NewDialogInfo.cs" />
+    <Compile Include="..\AsterNET.ARI.Proxy.Common\Messages\NewEventMessage.cs" Link="Messages\NewEventMessage.cs" />
+    <PackageReference Include="AsterNET.ARI" Version="1.2.0" />
+  </ItemGroup>
+
+</Project>

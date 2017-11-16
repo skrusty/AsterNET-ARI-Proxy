@@ -1,4 +1,4 @@
-﻿namespace AsterNET.ARI.Proxy.Config
+﻿namespace AsterNET.ARI.Proxy.Common.Config
 {
     public interface IConfigurationProvider
     {

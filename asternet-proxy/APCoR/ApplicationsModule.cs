@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Linq;
 using AsterNET.ARI.Proxy.APCoR.Models;
-using AsterNET.ARI.Proxy.Config;
+using AsterNET.ARI.Proxy.Common.Config;
 using Nancy;
 
 namespace AsterNET.ARI.Proxy.APCoR

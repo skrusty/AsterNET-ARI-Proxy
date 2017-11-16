@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Threading;
 using AsterNET.ARI.Proxy.Common;
-using AsterNET.ARI.Proxy.Config;
+using AsterNET.ARI.Proxy.Common.Config;
 using AsterNET.ARI.Proxy.Providers.RabbitMQ;
 using Nancy.Hosting.Self;
 using NLog;

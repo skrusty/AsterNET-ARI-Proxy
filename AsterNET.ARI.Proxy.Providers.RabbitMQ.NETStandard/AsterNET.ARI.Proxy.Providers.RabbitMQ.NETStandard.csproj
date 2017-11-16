@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="..\AsterNET.ARI.Proxy.Providers.RabbitMQ\RabbitMqBackendConfig.cs" Link="RabbitMqBackendConfig.cs" />
+    <Compile Include="..\AsterNET.ARI.Proxy.Providers.RabbitMQ\RabbitMqProvider.cs" Link="RabbitMqProvider.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="NLog" Version="4.4.12" />
+    <PackageReference Include="RabbitMQ.Client" Version="5.0.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\AsterNET.ARI.Proxy.Common.NetStandard\AsterNET.ARI.Proxy.Common.NetStandard.csproj" />
+  </ItemGroup>
+  
+</Project>

@@ -48,6 +48,9 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Config\ConfigurationProviders\JsonConfigurationProvider.cs" />
+    <Compile Include="Config\IConfigurationProvider.cs" />
+    <Compile Include="Config\ProxyConfig.cs" />
     <Compile Include="DialogueEventMessage.cs" />
     <Compile Include="DialogueRequestMessage.cs" />
     <Compile Include="DialogueResponseMessage.cs" />

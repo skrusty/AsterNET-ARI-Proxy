@@ -3,9 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using AsterNET.ARI.Proxy.Config.ConfigurationProviders;
+using AsterNET.ARI.Proxy.Common.Config.ConfigurationProviders;
 
-namespace AsterNET.ARI.Proxy.Config
+namespace AsterNET.ARI.Proxy.Common.Config
 {
 	public class ProxyConfig
 	{

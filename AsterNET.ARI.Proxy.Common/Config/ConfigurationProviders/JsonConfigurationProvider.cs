@@ -2,7 +2,7 @@
 using System.IO;
 using Newtonsoft.Json;
 
-namespace AsterNET.ARI.Proxy.Config.ConfigurationProviders
+namespace AsterNET.ARI.Proxy.Common.Config.ConfigurationProviders
 {
     public class JsonConfigurationProvider : IConfigurationProvider
     {
