@@ -57,6 +57,7 @@
     <Compile Include="IBackendProvider.cs" />
     <Compile Include="IDialogue.cs" />
     <Compile Include="IDialogueMessage.cs" />
+    <Compile Include="Logging\Logger.cs" />
     <Compile Include="Messages\Command.cs" />
     <Compile Include="Messages\CommandResult.cs" />
     <Compile Include="Messages\NewDialogInfo.cs" />

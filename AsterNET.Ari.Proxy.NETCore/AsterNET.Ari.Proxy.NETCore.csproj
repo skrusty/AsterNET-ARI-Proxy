@@ -8,8 +8,9 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Logging" Version="2.0.0" />
     <PackageReference Include="Nancy.Hosting.Self" Version="1.4.1" />
-    <PackageReference Include="NLog" Version="4.4.12" />
+    <PackageReference Include="NLog.Extensions.Logging" Version="1.0.0-rtm-rc2" />
     <PackageReference Include="RestSharp" Version="106.0.1" />
   </ItemGroup>
 
@@ -25,6 +26,12 @@
     
     <ProjectReference Include="..\AsterNET.ARI.Proxy.Common.NetStandard\AsterNET.ARI.Proxy.Common.NetStandard.csproj" />
     <ProjectReference Include="..\AsterNET.ARI.Proxy.Providers.RabbitMQ.NETStandard\AsterNET.ARI.Proxy.Providers.RabbitMQ.NETStandard.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="NLog.config">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 
 </Project>

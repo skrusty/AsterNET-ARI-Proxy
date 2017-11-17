@@ -4,23 +4,44 @@ using AsterNET.ARI.Proxy.Common;
 using AsterNET.ARI.Proxy.Common.Config;
 using AsterNET.ARI.Proxy.Providers.RabbitMQ;
 using Nancy.Hosting.Self;
-using NLog;
+using Microsoft.Extensions.Logging;
+using NLog.Extensions.Logging;
 
 namespace AsterNET.ARI.Proxy
 {
     internal class Program
     {
-        private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
-        private static readonly ManualResetEvent _quitEvent = new ManualResetEvent(false);
-        private static NancyHost _restHost;
-
+        public static ILoggerFactory LogFactory;
         private static void Main(string[] args)
         {
-            Logger.Info("Starting Ari Proxy");
+            SetupLogging();
+            var log = LogFactory.CreateLogger<Program>();
+
+            var runner = new Runner(LogFactory.CreateLogger<Runner>());
+        }
+
+        private static void SetupLogging()
+        {
+            LogFactory = new LoggerFactory();
+            LogFactory.AddNLog(new NLogProviderOptions { CaptureMessageTemplates = true, CaptureMessageProperties = true });
+            LogFactory.ConfigureNLog("nlog.config");
+        }
+    }
+
+    public class Runner
+    {
+        private readonly ManualResetEvent _quitEvent = new ManualResetEvent(false);
+        private NancyHost _restHost;
+        private ILogger<Runner> log;
+
+        public Runner(ILogger<Runner> logger)
+        {
+            log = logger;
+
+            log.LogInformation("Starting Ari Proxy");
 
             // Load config
             ProxyConfig.Current = ProxyConfig.Load();
-
             try
             {
                 // Init
@@ -28,10 +49,10 @@ namespace AsterNET.ARI.Proxy
                     BackendProvider.Current =
                         CreateProvider(ProxyConfig.Current.BackendProvider, ProxyConfig.Current.BackendConfig))
                 {
-                    LoadAPCoRs();
-                    LoadAppProxies();
+                    LoadAPCoRs(log);
+                    LoadAppProxies(log);
 
-                    Logger.Info("Load complete");
+                    log.LogInformation("Load complete");
 
                     Console.CancelKeyPress += Console_CancelKeyPress;
 
@@ -43,36 +64,36 @@ namespace AsterNET.ARI.Proxy
             }
             catch (Exception ex)
             {
-                Logger.Fatal("Something went wrong... " + ex.Message, ex);
+                log.LogCritical("Something went wrong... " + ex.Message, ex);
             }
         }
 
-        private static void LoadAppProxies()
+        private void LoadAppProxies(Microsoft.Extensions.Logging.ILogger log)
         {
-            Logger.Info("Loading Application Proxies");
+            log.LogInformation("Loading Application Proxies");
             // Load Applicaton Proxies
             foreach (var app in ProxyConfig.Current.Applications)
             {
-                Logger.Debug("Starting Proxy for " + app);
+                log.LogDebug("Starting Proxy for " + app);
                 var appProxy = ApplicationProxy.Create(BackendProvider.Current,
                     new StasisEndpoint(ProxyConfig.Current.AriHostname, ProxyConfig.Current.AriPort,
                         ProxyConfig.Current.AriUsername,
-                        ProxyConfig.Current.AriPassword), app.Trim());
+                        ProxyConfig.Current.AriPassword), app.Trim(), log);
             }
         }
 
-        private static void LoadAPCoRs()
+        private void LoadAPCoRs(Microsoft.Extensions.Logging.ILogger log)
         {
             // Load APCoRs if required
             if (ProxyConfig.Current.APCoR != null)
             {
-                Logger.Info("Starting APCoR");
+                log.LogInformation("Starting APCoR");
                 _restHost = new NancyHost(new Uri(ProxyConfig.Current.APCoR.BindUri));
                 _restHost.Start();
             }
         }
 
-        private static RabbitMqProvider CreateProvider(string providerId, dynamic config)
+        private RabbitMqProvider CreateProvider(string providerId, dynamic config)
         {
             switch (providerId)
             {
@@ -85,13 +106,13 @@ namespace AsterNET.ARI.Proxy
             }
         }
 
-        private static void Console_CancelKeyPress(object sender, ConsoleCancelEventArgs e)
+        private void Console_CancelKeyPress(object sender, ConsoleCancelEventArgs e)
         {
-            Logger.Info("Closing Application Proxies");
+            log.LogInformation("Closing Application Proxies");
             // Terminate Proxy		
             ApplicationProxy.Instances.ForEach(x => { x.Stop(); });
 
-            Logger.Info("Stopping APCoR");
+            log.LogInformation("Stopping APCoR");
             _restHost.Stop();
         }
     }
