@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
@@ -14,10 +14,7 @@
     <PackageReference Include="RestSharp" Version="106.0.1" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Compile Include="..\asternet-proxy\Program.cs" Link="Program.cs" />
-    <Compile Include="..\asternet-proxy\ApplicationProxy.cs" Link="ApplicationProxy.cs" />
-    
+  <ItemGroup>    
     <Compile Include="..\asternet-proxy\APCoR\ApplicationsModule.cs" Link="APCoR\ApplicationsModule.cs" />
     <Compile Include="..\asternet-proxy\APCoR\ConfigModule.cs" Link="APCoR\ConfigModule.cs" />
     

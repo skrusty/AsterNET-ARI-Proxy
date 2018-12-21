@@ -3,7 +3,6 @@ using System.Linq;
 using AsterNET.ARI.Proxy.APCoR.Models;
 using AsterNET.ARI.Proxy.Common.Config;
 using Nancy;
-using Microsoft.Extensions.Logging;
 using NLog.Extensions.Logging;
 
 namespace AsterNET.ARI.Proxy.APCoR
@@ -32,7 +31,7 @@ namespace AsterNET.ARI.Proxy.APCoR
                 // Create new instance
                 ApplicationProxy newApp = ApplicationProxy.Create(BackendProvider.Current,
                    new StasisEndpoint(ProxyConfig.Current.AriHostname, ProxyConfig.Current.AriPort, ProxyConfig.Current.AriUsername,
-                       ProxyConfig.Current.AriPassword), args.name, Program.LogFactory.CreateLogger<ApplicationProxy>());
+                       ProxyConfig.Current.AriPassword), args.name);
 
                 return HttpStatusCode.OK;
             };

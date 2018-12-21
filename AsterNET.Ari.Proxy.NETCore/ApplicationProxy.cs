@@ -1,22 +1,24 @@
-using System;
+﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using AsterNET.ARI.Models;
 using AsterNET.ARI.Proxy.Common;
 using AsterNET.ARI.Proxy.Common.Config;
 using AsterNET.ARI.Proxy.Common.Messages;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using NLog;
 using RestSharp;
 using RestSharp.Authenticators;
+using Microsoft.Extensions.Logging;
 
 namespace AsterNET.ARI.Proxy
 {
     public class ApplicationProxy
     {
-        private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
+        private readonly ILogger Logger;
         public static List<ApplicationProxy> Instances = new List<ApplicationProxy>();
         private readonly AriClient _client;
         public readonly ConcurrentDictionary<string, IDialogue> _dialogues;
@@ -27,12 +29,13 @@ namespace AsterNET.ARI.Proxy
         public List<IDialogue> ActiveDialogues;
         public DateTime Created;
 
-        private ApplicationProxy(IBackendProvider provider, StasisEndpoint endpoint, string appName)
+        private ApplicationProxy(IBackendProvider provider, StasisEndpoint endpoint, string appName, ILogger logger)
         {
             _provider = provider;
             _endpoint = endpoint;
             AppName = appName;
             Created = DateTime.Now;
+            Logger = logger;
 
             // Init
             _dialogues = new ConcurrentDictionary<string, IDialogue>();
@@ -77,8 +80,8 @@ namespace AsterNET.ARI.Proxy
                 newDialogue.OnNewCommandRequest += Dialogue_OnNewCommandRequest;
                 newDialogue.OnDialogueDestroyed += Dialogue_OnDialogueDestroyed;
 
-                Logger.Debug("Created new Dialogue {0}", newDialogue.DialogueId);
-                Logger.Debug("Attached {0} to Dialogue {1}", id, newDialogue.DialogueId);
+                Logger.LogDebug("Created new Dialogue {0}", newDialogue.DialogueId);
+                Logger.LogDebug("Attached {0} to Dialogue {1}", id, newDialogue.DialogueId);
 
                 return newDialogue;
             }
@@ -91,11 +94,11 @@ namespace AsterNET.ARI.Proxy
 
         private void AddToDialogue(string newId, IDialogue dialogue)
         {
-            Logger.Info("Attaching ID {0} to Dialogue {1}", newId, dialogue.DialogueId);
+            Logger.LogInformation("Attaching ID {0} to Dialogue {1}", newId, dialogue.DialogueId);
             if (!_dialogues.ContainsKey(newId))
                 _dialogues[newId] = dialogue;
             else
-                Logger.Warn("Unable to attached ID {0} as it's already assigned to a dialogue", newId);
+                Logger.LogWarning("Unable to attached ID {0} as it's already assigned to a dialogue", newId);
         }
 
         #endregion
@@ -104,13 +107,13 @@ namespace AsterNET.ARI.Proxy
 
         private void _client_OnConnectionStateChanged(object sender)
         {
-            Logger.Warn("ARI connection state changed for {0} to {1}", _endpoint.Host,
+            Logger.LogWarning("ARI connection state changed for {0} to {1}", _endpoint.Host,
                 _client.Connected ? "Connected" : "Disconnected");
         }
 
         private void _client_OnUnhandledEvent(object sender, Event eventMessage)
         {
-            Logger.Trace("New Event: {0}", eventMessage.Type);
+            Logger.LogTrace("New Event: {0}", eventMessage.Type);
             var dialogueMatchId = string.Empty;
             bool deleteDialogue = false;
             try
@@ -141,7 +144,7 @@ namespace AsterNET.ARI.Proxy
                         if (ProxyConfig.Current.CloseDialogueOnPrimaryStasisEnd &&
                             GetDialogue(dialogueMatchId).PrimaryDialogueChannel == dialogueMatchId)
                         {
-                            Logger.Debug("Found closing event for dialogue {0} with primary id {1}", dialogueMatchId,
+                            Logger.LogDebug("Found closing event for dialogue {0} with primary id {1}", dialogueMatchId,
                                 GetDialogue(dialogueMatchId).DialogueId);
                             deleteDialogue = true;
                         }
@@ -188,7 +191,7 @@ namespace AsterNET.ARI.Proxy
                         else
                         {
                             // Something else...
-                            Logger.Warn("Unknown event type {0}", eventMessage.Type);
+                            Logger.LogWarning("Unknown event type {0}", eventMessage.Type);
                         }
                         break;
                 }
@@ -196,24 +199,24 @@ namespace AsterNET.ARI.Proxy
                 var dialogue = GetDialogue(dialogueMatchId);
                 if (dialogue != null)
                 {
-                    Logger.Trace("Pushing message {0} to dialogue {1}", eventMessage.Type, dialogue.DialogueId);
+                    Logger.LogTrace("Pushing message {0} to dialogue {1}", eventMessage.Type, dialogue.DialogueId);
                     // Get the dialogue channel to send this event out one
                     dialogue.PushMessage(DialogueEventMessage.Create(eventMessage, ProxyConfig.Current.ServerId));
 
                     // Was the dialogue marked for deletion
                     if (!deleteDialogue) return;
-                    Logger.Info("Dialogue {0} marked for deletion", dialogueMatchId);
+                    Logger.LogInformation("Dialogue {0} marked for deletion", dialogueMatchId);
                     dialogue.Close();
                 }
                 else
                 {
                     // unmatched dialogue
-                    Logger.Warn("Unmatched dialogue for event {0} with id {1}", eventMessage.Type, dialogueMatchId);
+                    Logger.LogWarning("Unmatched dialogue for event {0} with id {1}", eventMessage.Type, dialogueMatchId);
                 }
             }
             catch (DialogueException dex)
             {
-                Logger.Error($"Unable to create new dialogue. {dex.Message}", dex);
+                Logger.LogError($"Unable to create new dialogue. {dex.Message}", dex);
                 // Should only happen when we start a new dialogue
                 // Set channel variables regarding the status of proxy and failure reason
                 var startArgs = (StasisStartEvent)eventMessage;
@@ -223,7 +226,7 @@ namespace AsterNET.ARI.Proxy
             }
             catch (Exception ex)
             {
-                Logger.Error("An error occurred while matching the event to a dialogue (" + ex.Message + ")", ex);
+                Logger.LogError("An error occurred while matching the event to a dialogue (" + ex.Message + ")", ex);
             }
         }
 
@@ -236,12 +239,12 @@ namespace AsterNET.ARI.Proxy
         {
             // A dialogue's channels have been destroyed in the backend provider
             // We should deregister the dialogue in the application proxy
-            Logger.Debug("Dialogue {0} has been destroyed", sender.DialogueId);
+            Logger.LogDebug("Dialogue {0} has been destroyed", sender.DialogueId);
             foreach (var d in _dialogues.Where(x => x.Value == sender).ToList())
             {
                 IDialogue tryout = null;
                 if (!_dialogues.TryRemove(d.Key, out tryout))
-                    Logger.Warn("Unable to remove Dialogue match {0} {1}", d.Key, d.Value.DialogueId);
+                    Logger.LogWarning("Unable to remove Dialogue match {0} {1}", d.Key, d.Value.DialogueId);
             }
 
             // Remove from Active Dialogues
@@ -250,7 +253,7 @@ namespace AsterNET.ARI.Proxy
 
         private void Dialogue_OnNewCommandRequest(object sender, Command e)
         {
-            Logger.Debug("New Command on Dialogue {0}: Uri: {1}, Method: {2}, Body: {3}",
+            Logger.LogDebug("New Command on Dialogue {0}: Uri: {1}, Method: {2}, Body: {3}",
                 ((IDialogue)sender).DialogueId, e.Url,
                 e.Method, e.Body);
             // Look for in-dialogue addition from OriginateWithId
@@ -322,7 +325,7 @@ namespace AsterNET.ARI.Proxy
 
         public void Stop()
         {
-            Logger.Info("Disconnecting proxy from {0}", AppName);
+            Logger.LogInformation("Disconnecting proxy from {0}", AppName);
             if (_client.ConnectionState == Middleware.ConnectionState.Open)
                 _client.Disconnect();
         }
@@ -335,11 +338,11 @@ namespace AsterNET.ARI.Proxy
             DeleteDialogue(dialogue);
         }
 
-        public static ApplicationProxy Create(IBackendProvider provider, StasisEndpoint endpoint, string appName)
+        public static ApplicationProxy Create(IBackendProvider provider, StasisEndpoint endpoint, string appName, ILogger logger)
         {
-            Logger.Info("Starting Application Proxy for {0}", appName);
+            logger.LogInformation("Starting Application Proxy for {0}", appName);
 
-            var rtn = new ApplicationProxy(provider, endpoint, appName);
+            var rtn = new ApplicationProxy(provider, endpoint, appName, logger);
             Instances.Add(rtn);
             rtn.Start();
 
