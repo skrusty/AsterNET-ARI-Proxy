@@ -24,7 +24,7 @@ namespace AsterNET.ARI.Proxy
         {
             LogFactory = new LoggerFactory();
             LogFactory.AddNLog(new NLogProviderOptions { CaptureMessageTemplates = true, CaptureMessageProperties = true });
-            LogFactory.ConfigureNLog("nlog.config");
+            LogFactory.ConfigureNLog("NLog.config");
         }
     }
 

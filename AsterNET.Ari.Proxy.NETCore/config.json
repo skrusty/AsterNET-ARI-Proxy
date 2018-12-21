@@ -1,0 +1,30 @@
+{
+	"ServerId": "test",
+	"AriHostname": "ec2-52-18-188-47.eu-west-1.compute.amazonaws.com",
+	"AriPort": 8088,
+	"AriUsername": "zapappisys-conf",
+	"AriPassword": "zapappisysconf***",
+	"Applications": [ "paladin" ],
+	"CloseDialogueOnPrimaryStasisEnd": "false",
+	"BackendProvider": "rmq",
+  "BackendConfig": {
+    "AmqpUri": "amqp://ariproxy:ariproxy**@ec2-54-194-87-253.eu-west-1.compute.amazonaws.com:5672/paladin",
+    "DialogueConfig": {
+      "AutoDelete": "true",
+      "Exclusive": "false",
+      "Durable": "true",
+      "TTL": 30000
+    },
+    "AppQueueConfig": {
+      "AutoDelete": "false",
+      "Exclusive": "false",
+      "Durable": "true",
+      "TTL": 30000
+    },
+    "Heartbeat": 30,
+    "CheckForClosedDialogues": "true"
+  },
+    "APCoR": {
+        "BindUri":  "http://localhost:9876"
+    }
+}
