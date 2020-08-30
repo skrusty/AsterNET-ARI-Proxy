@@ -14,13 +14,13 @@ namespace AsterNET.ARI.Proxy.APCoR
                 return HttpStatusCode.OK;
             };
 
-            Post["/reload"] = _ =>
-            {
-                // Currently just reloads config, needs to re-init
-                ProxyConfig.Current = ProxyConfig.Load();
+            //Post["/reload"] = _ =>
+            //{
+            //    // Currently just reloads config, needs to re-init
+            //    ProxyConfig.Current = ProxyConfig.Load();
 
-                return HttpStatusCode.OK;
-            };
+            //    return HttpStatusCode.OK;
+            //};
         }
     }
 }

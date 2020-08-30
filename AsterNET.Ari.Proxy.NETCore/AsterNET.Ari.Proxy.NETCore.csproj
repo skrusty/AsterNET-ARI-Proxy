@@ -2,24 +2,20 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>netcoreapp2.0</TargetFramework>
+    <TargetFramework>netcoreapp2.1</TargetFramework>
     <AssemblyName>asternet-ari-proxy</AssemblyName>
     <RootNamespace>AsterNET.Ari.Proxy</RootNamespace>
+    <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.Logging" Version="2.0.0" />
-    <PackageReference Include="Nancy.Hosting.Self" Version="2.0.0-clinteastwood" />
+    <PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.10.8" />
     <PackageReference Include="NLog.Extensions.Logging" Version="1.0.0-rtm-rc2" />
     <PackageReference Include="RestSharp" Version="106.0.1" />
   </ItemGroup>
 
-  <ItemGroup>    
-    <Compile Include="..\asternet-proxy\APCoR\ApplicationsModule.cs" Link="APCoR\ApplicationsModule.cs" />
-    <Compile Include="..\asternet-proxy\APCoR\ConfigModule.cs" Link="APCoR\ConfigModule.cs" />
-    
-    <Compile Include="..\asternet-proxy\APCoR\Models\ApplicationModel.cs" Link="APCoR\Models\ApplicationModel.cs" />
-    <Compile Include="..\asternet-proxy\APCoR\Models\DialogueModel.cs" Link="APCoR\Models\DialogueModel.cs" />
+  <ItemGroup>
     
     <ProjectReference Include="..\AsterNET.ARI.Proxy.Common.NetStandard\AsterNET.ARI.Proxy.Common.NetStandard.csproj" />
     <ProjectReference Include="..\AsterNET.ARI.Proxy.Providers.RabbitMQ.NETStandard\AsterNET.ARI.Proxy.Providers.RabbitMQ.NETStandard.csproj" />

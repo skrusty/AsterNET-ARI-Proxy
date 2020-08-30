@@ -1,0 +1,11 @@
+{
+  "profiles": {
+    "AsterNET.Ari.Proxy.NETCore": {
+      "commandName": "Project",
+      "commandLineArgs": "config"
+    },
+    "Docker": {
+      "commandName": "Docker"
+    }
+  }
+}

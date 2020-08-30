@@ -1,13 +1,22 @@
 ﻿using System;
+using System.IO;
 using System.Threading;
 using AsterNET.ARI.Proxy.Common;
 using AsterNET.ARI.Proxy.Common.Config;
 using AsterNET.ARI.Proxy.Providers.RabbitMQ;
+using CommandLine;
 using Nancy.Hosting.Self;
 using NLog;
 
 namespace AsterNET.ARI.Proxy
 {
+
+    public class Options
+    {
+        [Option('c', "config", Required = false, HelpText = "Location of configuration file")]
+        public string ConfigFile { get; set; }
+    }
+
     internal class Program
     {
         private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
@@ -18,8 +27,17 @@ namespace AsterNET.ARI.Proxy
         {
             Logger.Info("Starting Ari Proxy");
 
+            // Parse options
+            var options = new Options();
+            if(!CommandLine.Parser.Default.ParseArguments(args, options))
+            {
+                // Unable to parse command line options
+                Console.WriteLine("Failed to parse command line options");
+                return;
+            }
+
             // Load config
-            ProxyConfig.Current = ProxyConfig.Load();
+            ProxyConfig.Current = ProxyConfig.Load(Path.Combine(options.ConfigFile, "config"));
 
             try
             {
@@ -54,10 +72,16 @@ namespace AsterNET.ARI.Proxy
             foreach (var app in ProxyConfig.Current.Applications)
             {
                 Logger.Debug("Starting Proxy for " + app);
-                var appProxy = ApplicationProxy.Create(BackendProvider.Current,
-                    new StasisEndpoint(ProxyConfig.Current.AriHostname, ProxyConfig.Current.AriPort,
-                        ProxyConfig.Current.AriUsername,
-                        ProxyConfig.Current.AriPassword), app.Trim());
+                try
+                {
+                    var appProxy = ApplicationProxy.Create(BackendProvider.Current,
+                        new StasisEndpoint(ProxyConfig.Current.AriHostname, ProxyConfig.Current.AriPort,
+                            ProxyConfig.Current.AriUsername,
+                            ProxyConfig.Current.AriPassword), app.Trim());
+                }catch(Exception ex)
+                {
+                    Logger.Fatal(ex, $"AppProxy failed. {ex.Message}");
+                }
             }
         }
 

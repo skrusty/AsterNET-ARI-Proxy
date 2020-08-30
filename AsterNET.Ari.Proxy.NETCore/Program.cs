@@ -3,7 +3,6 @@ using System.Threading;
 using AsterNET.ARI.Proxy.Common;
 using AsterNET.ARI.Proxy.Common.Config;
 using AsterNET.ARI.Proxy.Providers.RabbitMQ;
-using Nancy.Hosting.Self;
 using Microsoft.Extensions.Logging;
 using NLog.Extensions.Logging;
 
@@ -16,8 +15,13 @@ namespace AsterNET.ARI.Proxy
         {
             SetupLogging();
             var log = LogFactory.CreateLogger<Program>();
-
-            var runner = new Runner(LogFactory.CreateLogger<Runner>());
+            try
+            {
+                var runner = new Runner(LogFactory.CreateLogger<Runner>(), args[0]);
+            }catch(Exception ex)
+            {
+                log.LogCritical($"Fatel Exception: {ex.Message}", ex);
+            }
         }
 
         private static void SetupLogging()
@@ -31,17 +35,16 @@ namespace AsterNET.ARI.Proxy
     public class Runner
     {
         private readonly ManualResetEvent _quitEvent = new ManualResetEvent(false);
-        private NancyHost _restHost;
         private ILogger<Runner> log;
 
-        public Runner(ILogger<Runner> logger)
+        public Runner(ILogger<Runner> logger, string configPath)
         {
             log = logger;
 
             log.LogInformation("Starting Ari Proxy");
 
             // Load config
-            ProxyConfig.Current = ProxyConfig.Load();
+            ProxyConfig.Current = ProxyConfig.Load(configPath);
             try
             {
                 // Init
@@ -49,7 +52,7 @@ namespace AsterNET.ARI.Proxy
                     BackendProvider.Current =
                         CreateProvider(ProxyConfig.Current.BackendProvider, ProxyConfig.Current.BackendConfig))
                 {
-                    LoadAPCoRs(log);
+                    // LoadAPCoRs(log);
                     LoadAppProxies(log);
 
                     log.LogInformation("Load complete");
@@ -85,12 +88,12 @@ namespace AsterNET.ARI.Proxy
         private void LoadAPCoRs(Microsoft.Extensions.Logging.ILogger log)
         {
             // Load APCoRs if required
-            if (ProxyConfig.Current.APCoR != null)
-            {
-                log.LogInformation("Starting APCoR");
-                _restHost = new NancyHost(new Uri(ProxyConfig.Current.APCoR.BindUri));
-                _restHost.Start();
-            }
+            //if (ProxyConfig.Current.APCoR != null)
+            //{
+            //    log.LogInformation("Starting APCoR");
+            //    _restHost = new NancyHost(new Uri(ProxyConfig.Current.APCoR.BindUri));
+            //    _restHost.Start();
+            //}
         }
 
         private RabbitMqProvider CreateProvider(string providerId, dynamic config)
@@ -111,9 +114,7 @@ namespace AsterNET.ARI.Proxy
             log.LogInformation("Closing Application Proxies");
             // Terminate Proxy		
             ApplicationProxy.Instances.ForEach(x => { x.Stop(); });
-
-            log.LogInformation("Stopping APCoR");
-            _restHost.Stop();
+            _quitEvent.Set();
         }
     }
 

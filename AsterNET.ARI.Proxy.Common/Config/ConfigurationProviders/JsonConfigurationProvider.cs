@@ -21,18 +21,21 @@ namespace AsterNET.ARI.Proxy.Common.Config.ConfigurationProviders
             }
         }
 
-        public T LoadConfiguration<T>(string configName) where T : class
+        public T LoadConfiguration<T>(string configPath) where T : class
         {
             // Load Config File
 
             try
             {
-                using (var fs = File.OpenRead(configName + ".json"))
+                using (var fs = File.OpenRead(configPath + ".json"))
                 {
                     using (var sr = new StreamReader(fs))
                     {
                         var json = sr.ReadToEnd();
-                        return JsonConvert.DeserializeObject<T>(json);
+                        var rtn = JsonConvert.DeserializeObject<T>(json);
+                        
+
+                        return rtn;
                     }
                 }
             }

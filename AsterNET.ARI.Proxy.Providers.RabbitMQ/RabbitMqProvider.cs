@@ -35,7 +35,11 @@ namespace AsterNET.ARI.Proxy.Providers.RabbitMQ
             _rmqConnection = new ConnectionFactory
             {
                 Uri = new Uri(amqpUri),
+#if NETSTANDARD
+                RequestedHeartbeat = TimeSpan.FromSeconds(config.Heartbeat),
+#else
                 RequestedHeartbeat = (ushort) config.Heartbeat,
+#endif
                 AutomaticRecoveryEnabled = true,
                 TopologyRecoveryEnabled = true,
                 NetworkRecoveryInterval = TimeSpan.FromSeconds(1)
@@ -209,13 +213,13 @@ namespace AsterNET.ARI.Proxy.Providers.RabbitMQ
             }
             catch (Exception ex)
             {
-                Logger.Error("Error processing OnNewCommandRequest", ex);
+                Logger.Error(ex, "Error processing OnNewCommandRequest");
             }
         }
 
         protected void OnError(Exception ex, RabbitMqConsumer sender, ulong deliveryTag)
         {
-            Logger.Error("RabbitMq Consumer Error", ex);
+            Logger.Error(ex, "RabbitMq Consumer Error");
         }
 
         /// <summary>
@@ -269,6 +273,7 @@ namespace AsterNET.ARI.Proxy.Providers.RabbitMQ
         /// </summary>
         /// <value>The name of the queue.</value>
         public string QueueName { get; set; }
+        private string consumerTag { get; set; }
 
         public void Dispose()
         {
@@ -290,22 +295,27 @@ namespace AsterNET.ARI.Proxy.Providers.RabbitMQ
             {
                 try
                 {
-                    var queuedMessage = Encoding.ASCII.GetString(e.Body);
+#if NETSTANDARD
+                    var body = e.Body.ToArray();
+#else
+                    var body = e.Body;
+#endif
+                    var queuedMessage = Encoding.ASCII.GetString(body);
                     onDequeue.Invoke(queuedMessage, this, e.DeliveryTag);
                     Model.BasicAck(e.DeliveryTag, false);
                 }
                 catch (Exception ex)
                 {
-                    Logger.Error("Error reding from queue", ex);
+                    Logger.Error(ex, "Error reding from queue");
                 }
             };
 
-            Model.BasicConsume(QueueName, false, _consumer);
+            consumerTag = Model.BasicConsume(QueueName, false, _consumer);
         }
 
         public void StopConsumer()
         {
-            Model.BasicCancel(_consumer.ConsumerTag);
+            Model.BasicCancel(consumerTag);
         }
 
         public void Close()

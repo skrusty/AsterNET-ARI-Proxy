@@ -22,14 +22,16 @@ namespace AsterNET.ARI.Proxy.Common.Config
 		public dynamic BackendConfig { get; set; }
         public APCoRConfig APCoR { get; set; }
 
-        public static ProxyConfig Load()
+        public string ConfigPath;
+
+        public static ProxyConfig Load(string configPath)
         {
-            return new JsonConfigurationProvider().LoadConfiguration<ProxyConfig>("config");
+            return new JsonConfigurationProvider().LoadConfiguration<ProxyConfig>(configPath);
         }
 
         public void Save()
         {
-            new JsonConfigurationProvider().SaveConfiguration<ProxyConfig>(this, "config");
+            new JsonConfigurationProvider().SaveConfiguration<ProxyConfig>(this, ConfigPath);
         }
 	}
 
